@@ -247,6 +247,21 @@
 				</select>
 			</div>
 			<div class="group">
+				<label for="charactersFilterInput">Characters Filter (e.g. 'abc' or 'all')</label>
+				<input type="text" id="charactersFilterInput" value="all">
+			</div>
+		</div>
+
+		<div class="row">
+			<div class="group">
+				<label for="kerningModeInput">Kerning Mode</label>
+				<select id="kerningModeInput">
+					<option value="none">None</option>
+					<option value="typical" selected>Typical (from repository)</option>
+					<option value="custom">Custom Pairs</option>
+				</select>
+			</div>
+			<div class="group">
 				<label for="kerningLevelInput">Kerning Level</label>
 				<select id="kerningLevelInput">
 					<option value="s3">Suppress -3</option>
@@ -257,6 +272,13 @@
 					<option value="b2">Boost 2</option>
 					<option value="b3">Boost 3</option>
 				</select>
+			</div>
+		</div>
+
+		<div class="row">
+			<div class="group">
+				<label for="customKernPairsInput">Custom Kern Pairs (space separated)</label>
+				<textarea id="customKernPairsInput" placeholder="AV VA Te"></textarea>
 			</div>
 		</div>
 
@@ -353,7 +375,10 @@
 				const letterVariety = parseInt(elements.letterVarietyInput.value);
 				const pairVariety = parseInt(elements.pairVarietyInput.value);
 				const caseMode = elements.caseModeInput.value;
+				const charactersFilter = elements.charactersFilterInput.value;
+				const kerningMode = elements.kerningModeInput.value;
 				const kerningLevel = elements.kerningLevelInput.value;
+				const customKernPairs = elements.customKernPairsInput.value;
 
 				const lines = this.tsvData.split(/\r?\n/);
 				if (lines.length === 0) return;
@@ -378,6 +403,15 @@
 					} else break;
 				}
 
+				let characters = '';
+				if (charactersFilter !== "all") {
+					for (const c of charactersFilter) {
+						if (caseMode === "allcaps" && casedict[c]) characters += casedict[c];
+						else if (c !== '\u00df') characters += c;
+					}
+				}
+				const charactersForFilter = characters !== "" ? "_" + characters : "";
+
 				const remainingLines = lines.slice(i);
 				const duplets = {};
 				for (const line of remainingLines) {
@@ -396,6 +430,12 @@
 						if ((t[0] === '_' && casedict[t[1]]) || (t[1] === '_' && casedict[t[2]])) continue;
 					}
 
+					if (charactersForFilter !== "") {
+						let ok = true;
+						for(const c of t) if(!charactersForFilter.includes(c)) { ok = false; break; }
+						if(!ok) continue;
+					}
+
 					const d_key = t.substring(0, 2);
 					const d_val = t.substring(2);
 					if (!duplets[d_key]) duplets[d_key] = {};
@@ -406,12 +446,8 @@
 				for (let step = 0; step < 2; step++) {
 					const toDelete = [];
 					for (const d in duplets) {
-						let hasPath = false;
 						for (const v in duplets[d]) {
-							if (duplets[d[1] + v]) {
-								hasPath = true;
-							} else {
-								// letter dead end
+							if (!duplets[d[1] + v]) {
 								delete duplets[d][v];
 							}
 						}
@@ -423,8 +459,14 @@
 				const kernglobal = { "s3": -1.0, "s2": -0.6, "s1": -0.3, "0": 0, "b1": 0.3, "b2": 0.6, "b3": 0.9 }[kerningLevel] || 0;
 				const kerntweaks = {};
 				if (kernglobal !== 0) {
-					for (const kp in kerningDataFull) {
-						kerntweaks[kp] = Math.pow(kerningDataFull[kp], kernglobal);
+					if (kerningMode === "typical") {
+						for (const kp in kerningDataFull) {
+							kerntweaks[kp] = Math.pow(kerningDataFull[kp], kernglobal);
+						}
+					} else if (kerningMode === "custom") {
+						for (const kp of customKernPairs.split(/\s+/)) {
+							if (kp) kerntweaks[kp] = Math.pow(100.0, kernglobal);
+						}
 					}
 				}
 
@@ -432,7 +474,15 @@
 				const equalisPair = 0.01 * pairVariety;
 				const wordlen_out = new Array(51).fill(1);
 				let wordsum_out = 4;
+
 				let current = "._";
+				if (characters !== "") {
+					const cand = [...characters].filter(c => c !== "_");
+					if (cand.length > 0) {
+						current = cand[Math.floor(random() * cand.length)] + "_";
+					}
+				}
+
 				let wordtmp = 0;
 				let file_output = "";
 				const freq_m = {}, freq_m_uc = {}, pair_m = {};
@@ -463,6 +513,7 @@
 						const cumulative = [];
 						let running_sum = 1;
 						for (const nextChar of options) {
+							const mult = characters !== "" ? Math.pow(2, ([...characters].filter(c => c === nextChar).length - 1)) : 1;
 							let tweakl = 1;
 							if ((lowercaseSet + arabicSet).includes(nextChar)) {
 								if (!freq_m[nextChar]) { freq_m[nextChar] = 1; num_l++; }
@@ -477,7 +528,7 @@
 							let tweakp = pair.includes('_') ? 1.0 : 1.0 + equalisPair * ((pair_total / pair_m[pair] / num_pairs) * 5 - 1);
 							const tweakkern = kerntweaks[pair] || 1;
 
-							running_sum += duplets[current][nextChar] * tweakl * tweakp * tweakkern;
+							running_sum += duplets[current][nextChar] * tweakl * tweakp * tweakkern * mult;
 							cumulative.push(running_sum);
 						}
 
@@ -497,9 +548,9 @@
 						if (freq_m_uc[chosenNext] !== undefined) { freq_m_uc[chosenNext]++; freq_total_uc++; }
 						if (pair_m[current] !== undefined) { pair_m[current]++; pair_total++; }
 					} else {
-						const next_c = "_";
+						const next_c = characters !== "" ? characters[Math.floor(random() * characters.length)] : "_";
 						current = current[1] + next_c;
-						file_output += " ";
+						file_output += next_c === "_" ? " " : next_c;
 					}
 				}
 				elements.output.textContent = file_output;
