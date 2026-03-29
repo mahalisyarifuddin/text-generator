@@ -285,6 +285,20 @@
 		<button id="generateBtn" class="primary">Generate Text</button>
 
 		<div id="output"></div>
+
+		<details id="freqDetails" class="hidden" style="margin-top: 1.5rem;">
+			<summary><b id="freqTitle">Character Frequency Analysis</b> (Click to expand)</summary>
+			<table id="freqTable">
+				<thead>
+					<tr>
+						<th id="thChar">Character</th>
+						<th id="thCount" style="text-align: right;">Count</th>
+						<th id="thPerc" style="text-align: right;">Percentage</th>
+					</tr>
+				</thead>
+				<tbody id="freqBody"></tbody>
+			</table>
+		</details>
 	</div>
 	<script>
 		const translations = {
@@ -294,7 +308,11 @@
 				autoTheme: 'Auto Theme',
 				lightTheme: 'Light',
 				darkTheme: 'Dark',
-				generateBtn: 'Generate Text'
+				generateBtn: 'Generate Text',
+				freqTitle: 'Character Frequency Analysis',
+				thChar: 'Character',
+				thCount: 'Count',
+				thPerc: 'Percentage'
 			},
 			id: {
 				title: 'Generator Teks Uji',
@@ -302,7 +320,11 @@
 				autoTheme: 'Tema Otomatis',
 				lightTheme: 'Terang',
 				darkTheme: 'Gelap',
-				generateBtn: 'Buat Teks'
+				generateBtn: 'Buat Teks',
+				freqTitle: 'Analisis Frekuensi Karakter',
+				thChar: 'Karakter',
+				thCount: 'Jumlah',
+				thPerc: 'Persentase'
 			}
 		};
 		const elements = new Proxy({}, { get: (_, id) => document.getElementById(id) });
@@ -554,6 +576,30 @@
 					}
 				}
 				elements.output.textContent = file_output;
+				this.displayFrequency(file_output);
+			}
+
+			displayFrequency(text) {
+				const counts = {};
+				for (const char of text) {
+					counts[char] = (counts[char] || 0) + 1;
+				}
+				const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+				const total = text.length;
+
+				elements.freqBody.innerHTML = "";
+				for (const [char, count] of sorted) {
+					const row = document.createElement("tr");
+					const percentage = ((count / total) * 100).toFixed(2) + "%";
+					const displayChar = char === " " ? "'Space'" : `' ${char} '`;
+					row.innerHTML = `
+						<td>${displayChar}</td>
+						<td style="text-align: right;">${count}</td>
+						<td style="text-align: right;">${percentage}</td>
+					`;
+					elements.freqBody.appendChild(row);
+				}
+				elements.freqDetails.classList.remove("hidden");
 			}
 		}
 		new TextGeneratorApp();
