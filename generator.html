@@ -74,11 +74,11 @@
 			background: var(--surface);
 			border: 1px solid var(--border);
 			border-radius: 8px;
-			max-width: 960px;
+			max-width: 1200px;
 			padding: 2rem;
 			width: 100%;
 			position: relative;
-			margin: 2rem 0;
+			margin: 1rem 0;
 		}
 		.hidden {
 			display: none !important;
@@ -184,17 +184,36 @@
 			border-radius: 4px;
 			white-space: pre-wrap;
 			font-family: monospace;
-			max-height: 400px;
+			max-height: 500px;
 			overflow-y: auto;
+			border: 1px solid var(--border);
 		}
-		@media(max-width: 768px) {
+		.main-layout {
+			display: flex;
+			gap: 2rem;
+			margin-top: 1rem;
+		}
+		.panel {
+			flex: 1;
+			min-width: 0;
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+		.freq-tsv {
+			font-family: monospace;
+			font-size: 0.85rem;
+			height: 200px;
+			margin-top: 0.5rem;
+		}
+		@media(max-width: 850px) {
+			.main-layout {
+				flex-direction: column;
+			}
 			.selectors {
 				position: static;
 				justify-content: end;
 				margin-bottom: .5rem;
-			}
-			.row {
-				flex-direction: column;
 			}
 		}
 	</style>
@@ -208,97 +227,102 @@
 		<h1 id="title"></h1>
 		<p id="subtitle" class="info"></p>
 
-		<div class="row">
-			<div class="group">
-				<label for="tsvFile">Trigram TSV File</label>
-				<input type="file" id="tsvFile" accept=".tsv,.txt">
+		<div class="main-layout">
+			<!-- Panel 1: Input & Controls -->
+			<div class="panel">
+				<h2 id="inputTitle" style="margin-bottom: 1rem;">Input & Controls</h2>
+
+				<div class="row">
+					<div class="group">
+						<label for="tsvFile">Trigram TSV File</label>
+						<input type="file" id="tsvFile" accept=".tsv,.txt">
+					</div>
+				</div>
+
+				<div class="row">
+					<div class="group">
+						<label for="seedInput">Seed</label>
+						<input type="number" id="seedInput" value="42">
+					</div>
+					<div class="group">
+						<label for="textLengthInput">Text Length</label>
+						<input type="number" id="textLengthInput" value="1000">
+					</div>
+				</div>
+
+				<div class="row">
+					<div class="group">
+						<label for="letterVarietyInput">Letter Variety (0-100)</label>
+						<input type="range" id="letterVarietyInput" min="0" max="100" value="0">
+					</div>
+					<div class="group">
+						<label for="pairVarietyInput">Pair Variety (0-100)</label>
+						<input type="range" id="pairVarietyInput" min="0" max="100" value="0">
+					</div>
+				</div>
+
+				<div class="row">
+					<div class="group">
+						<label for="caseModeInput">Case Mode</label>
+						<select id="caseModeInput">
+							<option value="normal">Normal</option>
+							<option value="allcaps">All Caps</option>
+							<option value="capitalized">Capitalized</option>
+						</select>
+					</div>
+				</div>
+
+				<div class="row">
+					<div class="group">
+						<label for="charactersFilterInput">Characters Filter (e.g. 'abc' or 'all')</label>
+						<textarea id="charactersFilterInput" placeholder="all">all</textarea>
+					</div>
+				</div>
+
+				<div class="row">
+					<div class="group">
+						<label for="kerningModeInput">Kerning Mode</label>
+						<select id="kerningModeInput">
+							<option value="none">None</option>
+							<option value="typical" selected>Typical (from repository)</option>
+							<option value="custom">Custom Pairs</option>
+						</select>
+					</div>
+					<div class="group">
+						<label for="kerningLevelInput">Kerning Level</label>
+						<select id="kerningLevelInput">
+							<option value="s3">Suppress -3</option>
+							<option value="s2">Suppress -2</option>
+							<option value="s1">Suppress -1</option>
+							<option value="0" selected>None (0)</option>
+							<option value="b1">Boost 1</option>
+							<option value="b2">Boost 2</option>
+							<option value="b3">Boost 3</option>
+						</select>
+					</div>
+				</div>
+
+				<div class="row">
+					<div class="group">
+						<label for="customKernPairsInput">Custom Kern Pairs (space separated)</label>
+						<textarea id="customKernPairsInput" placeholder="AV VA Te"></textarea>
+					</div>
+				</div>
+
+				<button id="generateBtn" class="primary">Generate Text</button>
+			</div>
+
+			<!-- Panel 2: Results & Analysis -->
+			<div class="panel">
+				<h2 id="resultsTitle" style="margin-bottom: 1rem;">Results & Analysis</h2>
+				<div id="output"></div>
+
+				<details id="freqDetails" class="hidden" style="margin-top: 1.5rem;">
+					<summary><b id="freqTitle">Character Frequency Analysis</b> (Click to expand)</summary>
+					<textarea id="freqTSV" class="freq-tsv" readonly></textarea>
+				</details>
 			</div>
 		</div>
-
-		<div class="row">
-			<div class="group">
-				<label for="seedInput">Seed</label>
-				<input type="number" id="seedInput" value="42">
-			</div>
-			<div class="group">
-				<label for="textLengthInput">Text Length</label>
-				<input type="number" id="textLengthInput" value="1000">
-			</div>
-		</div>
-
-		<div class="row">
-			<div class="group">
-				<label for="letterVarietyInput">Letter Variety (0-100)</label>
-				<input type="range" id="letterVarietyInput" min="0" max="100" value="0">
-			</div>
-			<div class="group">
-				<label for="pairVarietyInput">Pair Variety (0-100)</label>
-				<input type="range" id="pairVarietyInput" min="0" max="100" value="0">
-			</div>
-		</div>
-
-		<div class="row">
-			<div class="group">
-				<label for="caseModeInput">Case Mode</label>
-				<select id="caseModeInput">
-					<option value="normal">Normal</option>
-					<option value="allcaps">All Caps</option>
-					<option value="capitalized">Capitalized</option>
-				</select>
-			</div>
-			<div class="group">
-				<label for="charactersFilterInput">Characters Filter (e.g. 'abc' or 'all')</label>
-				<input type="text" id="charactersFilterInput" value="all">
-			</div>
-		</div>
-
-		<div class="row">
-			<div class="group">
-				<label for="kerningModeInput">Kerning Mode</label>
-				<select id="kerningModeInput">
-					<option value="none">None</option>
-					<option value="typical" selected>Typical (from repository)</option>
-					<option value="custom">Custom Pairs</option>
-				</select>
-			</div>
-			<div class="group">
-				<label for="kerningLevelInput">Kerning Level</label>
-				<select id="kerningLevelInput">
-					<option value="s3">Suppress -3</option>
-					<option value="s2">Suppress -2</option>
-					<option value="s1">Suppress -1</option>
-					<option value="0" selected>None (0)</option>
-					<option value="b1">Boost 1</option>
-					<option value="b2">Boost 2</option>
-					<option value="b3">Boost 3</option>
-				</select>
-			</div>
-		</div>
-
-		<div class="row">
-			<div class="group">
-				<label for="customKernPairsInput">Custom Kern Pairs (space separated)</label>
-				<textarea id="customKernPairsInput" placeholder="AV VA Te"></textarea>
-			</div>
-		</div>
-
-		<button id="generateBtn" class="primary">Generate Text</button>
-
-		<div id="output"></div>
-
-		<details id="freqDetails" class="hidden" style="margin-top: 1.5rem;">
-			<summary><b id="freqTitle">Character Frequency Analysis</b> (Click to expand)</summary>
-			<table id="freqTable">
-				<thead>
-					<tr>
-						<th id="thChar">Character</th>
-						<th id="thCount" style="text-align: right;">Count</th>
-						<th id="thPerc" style="text-align: right;">Percentage</th>
-					</tr>
-				</thead>
-				<tbody id="freqBody"></tbody>
-			</table>
-		</details>
 	</div>
 	<script>
 		const translations = {
@@ -310,9 +334,9 @@
 				darkTheme: 'Dark',
 				generateBtn: 'Generate Text',
 				freqTitle: 'Character Frequency Analysis',
-				thChar: 'Character',
-				thCount: 'Count',
-				thPerc: 'Percentage'
+				inputTitle: 'Input & Controls',
+				resultsTitle: 'Results & Analysis',
+				tsvHeader: 'Character\tCount\tPercentage'
 			},
 			id: {
 				title: 'Generator Teks Uji',
@@ -322,9 +346,9 @@
 				darkTheme: 'Gelap',
 				generateBtn: 'Buat Teks',
 				freqTitle: 'Analisis Frekuensi Karakter',
-				thChar: 'Karakter',
-				thCount: 'Jumlah',
-				thPerc: 'Persentase'
+				inputTitle: 'Input & Kontrol',
+				resultsTitle: 'Hasil & Analisis',
+				tsvHeader: 'Karakter\tJumlah\tPersentase'
 			}
 		};
 		const elements = new Proxy({}, { get: (_, id) => document.getElementById(id) });
@@ -427,7 +451,8 @@
 
 				let characters = '';
 				if (charactersFilter !== "all") {
-					for (const c of charactersFilter) {
+					const filteredRaw = charactersFilter.replace(/\s/g, '');
+					for (const c of filteredRaw) {
 						if (caseMode === "allcaps" && casedict[c]) characters += casedict[c];
 						else if (c !== '\u00df') characters += c;
 					}
@@ -555,10 +580,10 @@
 						}
 
 						const correction = 55000.0 / running_sum;
-						const randm = random() * 55000;
+						const randm = Math.floor(random() * 55000);
 						let chosenNext = options[options.length - 1];
 						for (let k = 0; k < cumulative.length; k++) {
-							if (randm < cumulative[k] * correction) {
+							if (randm < Math.floor(cumulative[k] * correction)) {
 								chosenNext = options[k];
 								break;
 							}
@@ -587,18 +612,13 @@
 				const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
 				const total = text.length;
 
-				elements.freqBody.innerHTML = "";
+				let tsv = this.string('tsvHeader') + "\n";
 				for (const [char, count] of sorted) {
-					const row = document.createElement("tr");
 					const percentage = ((count / total) * 100).toFixed(2) + "%";
-					const displayChar = char === " " ? "'Space'" : `' ${char} '`;
-					row.innerHTML = `
-						<td>${displayChar}</td>
-						<td style="text-align: right;">${count}</td>
-						<td style="text-align: right;">${percentage}</td>
-					`;
-					elements.freqBody.appendChild(row);
+					const displayChar = char === " " ? "Space" : char;
+					tsv += `${displayChar}\t${count}\t${percentage}\n`;
 				}
+				elements.freqTSV.value = tsv;
 				elements.freqDetails.classList.remove("hidden");
 			}
 		}
