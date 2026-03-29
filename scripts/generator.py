@@ -105,7 +105,7 @@ print("<br><br>")
 ########################################################################################################################
 ########################################################################################################################
 
-triplets_filename = os.path.join( os.path.dirname( os.path.abspath( __file__ ) ), 'languages', 'triplets' )
+triplets_filename = os.path.join( os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) ), 'languages', 'triplets' )
 for lang in input_languages:
 		triplets_filename += "_" + lang
 triplets_filename += ".txt"
@@ -127,7 +127,7 @@ if not os.path.isfile(triplets_filename):
 	triplets = []
 	inputs = []
 	for i in range(n):
-		f=open( os.path.join( os.path.dirname( os.path.abspath( __file__ ) ), 'languages', 'triplets_'+input_languages[i]+'.txt'), 'r' )
+		f=open( os.path.join( os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) ), 'languages', 'triplets_'+input_languages[i]+'.txt'), 'r' )
 		file_output_merged += " " + input_languages[i]
 		triplets.append({})
 		inputs = f.readlines()
@@ -218,7 +218,7 @@ numberofpairs = 0
 # import kerning file
 if kernglobal != 0:
 	if args.kern == "typ":
-		kern_filename = os.path.join( os.path.dirname( os.path.abspath( __file__ ) ), 'kerning.txt' )
+		kern_filename = os.path.join( os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) ), 'kerning.txt' )
 		f=open(kern_filename, 'r')
 		inputs = f.readlines()
 		f.close()
