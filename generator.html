@@ -385,10 +385,15 @@
 			}
 		}
 
-		const uppercaseSet = "AÁÀÂÄĂĀÃÅĄǺẠÆǼBCĆĊĈČÇDĎĐÐEÉÈĖÊËĚĔĒĘFGĠĜĞĢHĤĦIÍÌÎÏĬĪĨĮJĴKĸĶLĹĿĽĻŁMNŃŇÑŅŉŊOÓÒÔÖŎŌÕŐØǾƠŒPQRŔŘŖSŚŜŠŞTŤŢÞŦUÚÙÛÜŬŮŲŰƯVWẂẀŴẄXYÝŶŸZŹŹŻŽΑΆΒΓΔΕΈΖΗΉΘΙΊΪΚΛΜΝΞΟΌΠΡΣΣΤΥΎΫΰΦΧΨΩΏАБВГҐЃДЂЕЁЄЖЗЅИІЇЙЈКЌЛЉМНЊОПРСТЋУЎФХЦЧЏШЩЪЫЬЭЮЯ";
-		const lowercaseSet = "aáàâäăāãåąǻạæǽbcćċĉčçdďđðeéèėêëěĕēęfgġĝğģhĥħiíìîïĭīĩįjĵkĸķlĺŀľļłmnńňñņŉŋoóòôöŏōõőøǿơœpqrŕřŗsśŝšştťţþŧuúùûüŭūũůųűưvwẃẁŵẅxyýŷÿzźźżžαάβγδεέζηήθιίϊκλμνξοόπρςστυύϋΰφχψωώабвгґѓдђеёєжзѕиіїйјкќлљмнњопрстћуўфхцчџшщъыьэюяßı";
-		const arabicSet = "ءآأؤإئابةتثجحخدذرزسشصضطظعغػؼؽؾؿـفقكلمنهوى";
-		const lettersSet = uppercaseSet + lowercaseSet + arabicSet;
+		const uppercaseStr = "AÁÀÂÄĂĀÃÅĄǺẠÆǼBCĆĊĈČÇDĎĐÐEÉÈĖÊËĚĔĒĘFGĠĜĞĢHĤĦIÍÌÎÏĬĪĨĮJĴKĸĶLĹĿĽĻŁMNŃŇÑŅŉŊOÓÒÔÖŎŌÕŐØǾƠŒPQRŔŘŖSŚŜŠŞTŤŢÞŦUÚÙÛÜŬŮŲŰƯVWẂẀŴẄXYÝŶŸZŹŹŻŽΑΆΒΓΔΕΈΖΗΉΘΙΊΪΚΛΜΝΞΟΌΠΡΣΣΤΥΎΫΰΦΧΨΩΏАБВГҐЃДЂЕЁЄЖЗЅИІЇЙЈКЌЛЉМНЊОПРСТЋУЎФХЦЧЏШЩЪЫЬЭЮЯ";
+		const lowercaseStr = "aáàâäăāãåąǻạæǽbcćċĉčçdďđðeéèėêëěĕēęfgġĝğģhĥħiíìîïĭīĩįjĵkĸķlĺŀľļłmnńňñņŉŋoóòôöŏōõőøǿơœpqrŕřŗsśŝšştťţþŧuúùûüŭūũůųűưvwẃẁŵẅxyýŷÿzźźżžαάβγδεέζηήθιίϊκλμνξοόπρςστυύϋΰφχψωώабвгґѓдђеёєжзѕиіїйјκќлљмнњопрстћуўфхцчџшщъыьэюяßı";
+		const arabicStr = "ءآأؤإئابةتثجحخدذرزسشصضطظعغػؼؽؾؿـفقكلمنهوى";
+		const lettersStr = uppercaseStr + lowercaseStr + arabicStr;
+		const uppercaseSet = new Set(uppercaseStr);
+		const lowercaseSet = new Set(lowercaseStr);
+		const arabicSet = new Set(arabicStr);
+		const lettersSet = new Set(lettersStr);
+		const lowercaseAndArabicSet = new Set(lowercaseStr + arabicStr);
 		const casedict = {};
 		for(let i=0; i<uppercaseSet.length; i++) casedict[lowercaseSet[i]] = uppercaseSet[i];
 		casedict['\u0131'] = 'I';
@@ -575,7 +580,17 @@ class TextGeneratorApp {
                 else if (c !== '\u00df') characters += c;
             }
         }
-        const charactersForFilter = characters !== "" ? "_" + characters : "";
+		const charactersForFilter = characters !== "" ? new Set("_" + characters) : null;
+		// Character multipliers for filtering
+		const charMultipliers = new Map();
+		if (characters !== "") {
+			for (const c of characters) {
+				charMultipliers.set(c, (charMultipliers.get(c) || 0) + 1);
+			}
+			for (const [c, count] of charMultipliers) {
+				charMultipliers.set(c, Math.pow(2, (count - 1)));
+			}
+		}
 
         const remainingLines = lines.slice(i);
         const duplets = {};
@@ -597,8 +612,12 @@ class TextGeneratorApp {
                 if ((t[0] === '_' && casedict[t[1]]) || (t[1] === '_' && casedict[t[2]])) continue;
             }
 
-            if (charactersForFilter !== "") {
-                if (![...t].every(c => charactersForFilter.includes(c))) continue;
+			if (charactersForFilter !== null) {
+				let skip = false;
+				for (const c of t) {
+					if (!charactersForFilter.has(c)) { skip = true; break; }
+				}
+				if (skip) continue;
             }
 
             const d_key = t.substring(0, 2);
@@ -619,6 +638,12 @@ class TextGeneratorApp {
             }
             toDelete.forEach(d => delete duplets[d]);
         }
+
+		// Pre-sort candidates to avoid sorting inside the loop
+		const dupletsSorted = new Map();
+		for (const d in duplets) {
+			dupletsSorted.set(d, Object.keys(duplets[d]).sort());
+		}
 
         const kernglobal = { "s3": -1.0, "s2": -0.6, "s1": -0.3, "0": 0, "b1": 0.3, "b2": 0.6, "b3": 0.9 }[kerningLevel] || 0;
         const kerntweaks = {};
@@ -647,8 +672,8 @@ class TextGeneratorApp {
             const pool_c = "_" + characters;
             current = pool_c[Math.floor(random_gen() * pool_c.length)] + "_";
         }
-        if (!duplets[current]) {
-            const allKeys = Object.keys(duplets).sort();
+		if (!dupletsSorted.has(current)) {
+			const allKeys = [...dupletsSorted.keys()].sort();
             if (allKeys.length > 0) current = allKeys[Math.floor(random_gen() * allKeys.length)];
         }
 
@@ -659,9 +684,9 @@ class TextGeneratorApp {
         let num_l = 0, num_l_uc = 0, num_pairs = 0;
 
         for (let j = 0; j < textLength; j++) {
-            if (lettersSet.includes(current[1])) wordtmp++;
+			if (lettersSet.has(current[1])) wordtmp++;
             else {
-                if (lettersSet.includes(current[0])) {
+				if (lettersSet.has(current[0])) {
                     const wlen = Math.min(wordtmp, wordmax);
                     wordlen_out[wlen]++;
                     wordsum_out++;
@@ -677,28 +702,30 @@ class TextGeneratorApp {
                 tweakblank = Math.max(0.25, Math.min(30.0, tweakblank));
             }
 
-            if (duplets[current] && Object.keys(duplets[current]).length > 0) {
-                const options = Object.keys(duplets[current]).sort();
+			const options = dupletsSorted.get(current);
+			if (options && options.length > 0) {
                 const cumulative = [];
                 let running_sum = 1;
-                for (const nextChar of options) {
-                    const count_c = characters !== "" ? [...characters].filter(c => c === nextChar).length : 1;
-                    const mult = characters !== "" ? Math.pow(2, (count_c - 1)) : 1;
+				const currentDuplet = duplets[current];
+				const char2 = current[1];
+				for (let k = 0; k < options.length; k++) {
+					const nextChar = options[k];
+					const mult = charMultipliers.get(nextChar) || 1;
                     let tweakl = 1;
-                    if ((lowercaseSet + arabicSet).includes(nextChar)) {
+					if (lowercaseAndArabicSet.has(nextChar)) {
                         if (!freq_m[nextChar]) { freq_m[nextChar] = 1; num_l++; }
                         tweakl = 1.0 + equalization * ((freq_total / freq_m[nextChar] / num_l) * 5 - 1);
-                    } else if (uppercaseSet.includes(nextChar)) {
+					} else if (uppercaseSet.has(nextChar)) {
                         if (!freq_m_uc[nextChar]) { freq_m_uc[nextChar] = 1; num_l_uc++; }
                         tweakl = 1.0 + equalization * ((freq_total_uc / freq_m_uc[nextChar] / num_l_uc) * 5 - 1);
                     } else tweakl = tweakblank;
 
-                    const pair = current[1] + nextChar;
+					const pair = char2 + nextChar;
                     if (!pair_m[pair]) { pair_m[pair] = 4; num_pairs++; }
-                    let tweakp = pair.includes('_') ? 1.0 : 1.0 + equalisPair * ((pair_total / pair_m[pair] / num_pairs) * 5 - 1);
+					let tweakp = (char2 === '_' || nextChar === '_') ? 1.0 : 1.0 + equalisPair * ((pair_total / pair_m[pair] / num_pairs) * 5 - 1);
                     const tweakkern = kerntweaks[pair] || 1;
 
-                    running_sum += duplets[current][nextChar] * tweakl * tweakp * tweakkern * mult;
+					running_sum += currentDuplet[nextChar] * tweakl * tweakp * tweakkern * mult;
                     cumulative.push(running_sum);
                 }
 
@@ -712,7 +739,7 @@ class TextGeneratorApp {
                     }
                 }
 
-                current = current[1] + chosenNext;
+				current = char2 + chosenNext;
                 file_output += chosenNext === "_" ? " " : chosenNext;
                 if (freq_m[chosenNext] !== undefined) { freq_m[chosenNext]++; freq_total++; }
                 if (freq_m_uc[chosenNext] !== undefined) { freq_m_uc[chosenNext]++; freq_total_uc++; }
