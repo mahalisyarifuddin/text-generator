@@ -306,7 +306,10 @@
 				</label>
 			</div>
 
-			<button id="generateBtn" style="width: 100%;">Generate Text</button>
+			<div class="row" style="margin-top: 1rem;">
+				<button id="generateBtn" style="flex: 2;">Generate Text</button>
+				<button id="resetBtn" class="btn-secondary" style="flex: 1; height: 38px; margin-top: 4px !important;">Reset Defaults</button>
+			</div>
 		</section>
 
 		<section>
@@ -367,6 +370,7 @@
 				copyTextBtn: 'Copy',
 				downloadTextBtn: 'Download',
 				copyFreqBtn: 'Copy TSV',
+				resetBtn: 'Reset Defaults',
 				copied: 'Copied!'
 			},
 						id: {
@@ -403,6 +407,7 @@
 				copyTextBtn: 'Salin',
 				downloadTextBtn: 'Unduh',
 				copyFreqBtn: 'Salin TSV',
+				resetBtn: 'Atur Ulang',
 				copied: 'Tersalin!'
 			}
 		};
@@ -524,9 +529,34 @@ class TextGeneratorApp {
 			duplets: null,
 			dupletsSorted: null,
 			charMultipliers: null,
-			characters: ""
+			characters: "",
+			kerningMode: null,
+			kerningLevel: null,
+			customKernPairs: null,
+			kerntweaks: null
 		};
 		this.init();
+	}
+
+	debounce(func, wait) {
+		let timeout;
+		return function(...args) {
+			clearTimeout(timeout);
+			timeout = setTimeout(() => func.apply(this, args), wait);
+		};
+	}
+
+	reset() {
+		elements.seedInput.value = 0;
+		elements.textLengthInput.value = 1000;
+		elements.letterVarietyInput.value = 0;
+		elements.pairVarietyInput.value = 0;
+		elements.caseModeInput.value = "normal";
+		elements.charactersFilterInput.value = "";
+		elements.kerningModeInput.value = "typical";
+		elements.kerningLevelInput.value = "0";
+		elements.customKernPairsInput.value = "";
+		this.generate();
 	}
 
 	init() {
@@ -548,9 +578,21 @@ class TextGeneratorApp {
 			}
 		});
 
+		const debouncedGenerate = this.debounce(() => this.generate(), 300);
+		[
+			'seedInput', 'textLengthInput', 'letterVarietyInput', 'pairVarietyInput',
+			'caseModeInput', 'charactersFilterInput', 'kerningModeInput',
+			'kerningLevelInput', 'customKernPairsInput'
+		].forEach(id => {
+			elements[id].addEventListener('input', debouncedGenerate);
+			elements[id].addEventListener('change', debouncedGenerate);
+		});
+
 		elements.generateBtn.addEventListener('click', () => this.generate());
+		elements.resetBtn.addEventListener('click', () => this.reset());
 		elements.randomizeLink.addEventListener('click', () => {
 			elements.seedInput.value = Math.floor(Math.random() * 1000000);
+			this.generate();
 		});
 		elements.copyTextBtn.addEventListener('click', (e) => this.copyToClipboard(elements.output.textContent, e.target));
 		elements.downloadTextBtn.addEventListener('click', () => this.downloadToFile(elements.output.textContent, 'generated_text.txt'));
@@ -589,7 +631,7 @@ class TextGeneratorApp {
 	}
 
 	updateUIStrings() {
-		const ids = ['title', 'generateBtn', 'freqTitle', 'inputTitle', 'resultsTitle', 'labelTsvFile', 'statusCorpusConverted', 'downloadTsvLink', 'labelSeed', 'randomizeLink', 'labelTextLength', 'labelLetterVariety', 'labelPairVariety', 'labelCaseMode', 'optNormal', 'optAllCaps', 'optCapitalized', 'labelCharactersFilter', 'labelKerningMode', 'optNone', 'optTypical', 'optCustom', 'labelKerningLevel', 'labelCustomKernPairs', 'copyTextBtn', 'downloadTextBtn', 'copyFreqBtn'];
+		const ids = ['title', 'generateBtn', 'resetBtn', 'freqTitle', 'inputTitle', 'resultsTitle', 'labelTsvFile', 'statusCorpusConverted', 'downloadTsvLink', 'labelSeed', 'randomizeLink', 'labelTextLength', 'labelLetterVariety', 'labelPairVariety', 'labelCaseMode', 'optNormal', 'optAllCaps', 'optCapitalized', 'labelCharactersFilter', 'labelKerningMode', 'optNone', 'optTypical', 'optCustom', 'labelKerningLevel', 'labelCustomKernPairs', 'copyTextBtn', 'downloadTextBtn', 'copyFreqBtn'];
 		ids.forEach(id => {
 			if (elements[id]) {
 		if (elements[id].childNodes.length > 0 && elements[id].firstChild.nodeType === 3) {
@@ -715,7 +757,7 @@ class TextGeneratorApp {
 	}
 
 	generate() {
-		if (!this.tsvData) { alert(this.string('alertNoFile')); return; }
+		if (!this.tsvData) return;
 
 		const caseMode = elements.caseModeInput.value;
 		const charFilter = elements.charactersFilterInput.value.trim();
@@ -729,22 +771,30 @@ class TextGeneratorApp {
 		const textLength = parseInt(elements.textLengthInput.value);
 		const kerningMode = elements.kerningModeInput.value;
 		const kerningLevel = elements.kerningLevelInput.value;
+		const customKernPairs = elements.customKernPairsInput.value.trim();
 		const random_gen = mulberry32(seed);
 
 		const wordmax = 6;
-		const kernglobal = { "s3": -1.0, "s2": -0.6, "s1": -0.3, "0": 0, "b1": 0.3, "b2": 0.6, "b3": 0.9 }[kerningLevel] || 0;
-		const kerntweaks = {};
-		if (kernglobal !== 0) {
-			if (kerningMode === "typical") {
-		for (const kp in kerningDataFull) {
-			kerntweaks[kp] = Math.pow(kerningDataFull[kp], kernglobal);
-		}
-			} else if (kerningMode === "custom") {
-		const customPairs = elements.customKernPairsInput.value.trim().split(/\s+/);
-		for (const kp of customPairs) {
-			if (kp) kerntweaks[kp] = Math.pow(100.0, kernglobal);
-		}
+		let kerntweaks = this.cache.kerntweaks;
+		if (this.cache.kerningMode !== kerningMode || this.cache.kerningLevel !== kerningLevel || this.cache.customKernPairs !== customKernPairs) {
+			const kernglobal = { "s3": -1.0, "s2": -0.6, "s1": -0.3, "0": 0, "b1": 0.3, "b2": 0.6, "b3": 0.9 }[kerningLevel] || 0;
+			kerntweaks = {};
+			if (kernglobal !== 0) {
+				if (kerningMode === "typical") {
+					for (const kp in kerningDataFull) {
+						kerntweaks[kp] = Math.pow(kerningDataFull[kp], kernglobal);
+					}
+				} else if (kerningMode === "custom") {
+					const customPairsArr = customKernPairs.split(/\s+/);
+					for (const kp of customPairsArr) {
+						if (kp) kerntweaks[kp] = Math.pow(100.0, kernglobal);
+					}
+				}
 			}
+			this.cache.kerningMode = kerningMode;
+			this.cache.kerningLevel = kerningLevel;
+			this.cache.customKernPairs = customKernPairs;
+			this.cache.kerntweaks = kerntweaks;
 		}
 
 		const letterVariety = parseInt(elements.letterVarietyInput.value);
