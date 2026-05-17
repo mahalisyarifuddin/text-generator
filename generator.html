@@ -535,6 +535,7 @@ class TextGeneratorApp {
 			customKernPairs: null,
 			kerntweaks: null
 		};
+		this.cumulativeBuffer = new Float64Array(4096);
 		this.init();
 	}
 
@@ -819,73 +820,84 @@ class TextGeneratorApp {
 		const freq_m = {}, freq_m_uc = {}, pair_m = {};
 		let freq_total = 1, freq_total_uc = 1, pair_total = 1;
 		let num_l = 0, num_l_uc = 0, num_pairs = 0;
+		const deadEndPool = "____" + (characters !== "" ? characters : ".....,,,,!?");
+		const tweakLBase = 1.0 - equalization;
+		const tweakPBase = 1.0 - equalisPair;
 
 		for (let j = 0; j < textLength; j++) {
 			if (lettersSet.has(current[1])) wordtmp++;
 			else {
-		if (lettersSet.has(current[0])) {
-			const wlen = Math.min(wordtmp, wordmax);
-			wordlen_out[wlen]++;
-			wordsum_out++;
-		}
-		wordtmp = 0;
+				if (lettersSet.has(current[0])) {
+					const wlen = Math.min(wordtmp, wordmax);
+					wordlen_out[wlen]++;
+					wordsum_out++;
+				}
+				wordtmp = 0;
 			}
 
 			let tweakblank = 1;
 			if (wordtmp >= wordmax) tweakblank = (wordtmp - wordmax + 1) * 60;
 			else if (wordtmp !== 0) {
-		tweakblank = Math.pow((wordlenIn[Math.min(wordtmp, 50)] * wordsum_out) / (wordlen_out[Math.min(wordtmp, 50)] * wordsumIn), 4);
-		if (wordtmp > 15 && tweakblank < equalization * 50) tweakblank = equalization * 50 + 2;
-		tweakblank = Math.max(0.25, Math.min(30.0, tweakblank));
+				tweakblank = Math.pow((wordlenIn[Math.min(wordtmp, 50)] * wordsum_out) / (wordlen_out[Math.min(wordtmp, 50)] * wordsumIn), 4);
+				if (wordtmp > 15 && tweakblank < equalization * 50) tweakblank = equalization * 50 + 2;
+				tweakblank = Math.max(0.25, Math.min(30.0, tweakblank));
 			}
 
 			const options = dupletsSorted.get(current);
 			if (options && options.length > 0) {
-		const cumulative = [];
-		let running_sum = 1;
-		const currentDuplet = duplets[current];
-		const char2 = current[1];
-		for (let k = 0; k < options.length; k++) {
-			const nextChar = options[k];
-			const mult = charMultipliers.get(nextChar) || 1;
-			let tweakl = 1;
-			if (lowercaseAndArabicSet.has(nextChar)) {
-				if (!freq_m[nextChar]) { freq_m[nextChar] = 1; num_l++; }
-				tweakl = 1.0 + equalization * ((freq_total / freq_m[nextChar] / num_l) * 5 - 1);
-			} else if (uppercaseSet.has(nextChar)) {
-				if (!freq_m_uc[nextChar]) { freq_m_uc[nextChar] = 1; num_l_uc++; }
-				tweakl = 1.0 + equalization * ((freq_total_uc / freq_m_uc[nextChar] / num_l_uc) * 5 - 1);
-			} else tweakl = tweakblank;
+				const cumulative = this.cumulativeBuffer;
+				let running_sum = 1;
+				const currentDuplet = duplets[current];
+				const char2 = current[1];
 
-			const pair = char2 + nextChar;
-			if (!pair_m[pair]) { pair_m[pair] = 4; num_pairs++; }
-			let tweakp = (char2 === '_' || nextChar === '_') ? 1.0 : 1.0 + equalisPair * ((pair_total / pair_m[pair] / num_pairs) * 5 - 1);
-			const tweakkern = kerntweaks[pair] || 1;
+				const tweakLFactor = equalization * 5 * freq_total;
+				const tweakLFactorUC = equalization * 5 * freq_total_uc;
+				const tweakPFactor = equalisPair * 5 * pair_total;
 
-			running_sum += currentDuplet[nextChar] * tweakl * tweakp * tweakkern * mult;
-			cumulative.push(running_sum);
-		}
+				const numOptions = options.length;
+				for (let k = 0; k < numOptions; k++) {
+					const nextChar = options[k];
+					const mult = charMultipliers.get(nextChar) || 1;
+					let tweakl = 1;
+					if (lowercaseAndArabicSet.has(nextChar)) {
+						if (!freq_m[nextChar]) { freq_m[nextChar] = 1; num_l++; }
+						tweakl = tweakLBase + (tweakLFactor / (freq_m[nextChar] * num_l));
+					} else if (uppercaseSet.has(nextChar)) {
+						if (!freq_m_uc[nextChar]) { freq_m_uc[nextChar] = 1; num_l_uc++; }
+						tweakl = tweakLBase + (tweakLFactorUC / (freq_m_uc[nextChar] * num_l_uc));
+					} else tweakl = tweakblank;
 
-		const correction = 55000.0 / running_sum;
-		const randm = Math.floor(random_gen() * 55000);
-		let chosenNext = options[options.length - 1];
-		for (let k = 0; k < cumulative.length; k++) {
-			if (randm < Math.floor(cumulative[k] * correction)) {
-				chosenNext = options[k];
-				break;
-			}
-		}
+					const pair = char2 + nextChar;
+					if (!pair_m[pair]) { pair_m[pair] = 4; num_pairs++; }
+					let tweakp = 1.0;
+					if (char2 !== '_' && nextChar !== '_') {
+						tweakp = tweakPBase + (tweakPFactor / (pair_m[pair] * num_pairs));
+					}
+					const tweakkern = (kerntweaks && kerntweaks[pair]) || 1;
 
-		current = char2 + chosenNext;
-		file_output += chosenNext === "_" ? " " : chosenNext;
-		if (freq_m[chosenNext] !== undefined) { freq_m[chosenNext]++; freq_total++; }
-		if (freq_m_uc[chosenNext] !== undefined) { freq_m_uc[chosenNext]++; freq_total_uc++; }
-		if (pair_m[current] !== undefined) { pair_m[current]++; pair_total++; }
+					running_sum += currentDuplet[nextChar] * tweakl * tweakp * tweakkern * mult;
+					cumulative[k] = running_sum;
+				}
+
+				const correction = 55000.0 / running_sum;
+				const randm = Math.floor(random_gen() * 55000);
+				let chosenNext = options[numOptions - 1];
+				for (let k = 0; k < numOptions; k++) {
+					if (randm < Math.floor(cumulative[k] * correction)) {
+						chosenNext = options[k];
+						break;
+					}
+				}
+
+				current = char2 + chosenNext;
+				file_output += chosenNext === "_" ? " " : chosenNext;
+				if (freq_m[chosenNext] !== undefined) { freq_m[chosenNext]++; freq_total++; }
+				if (freq_m_uc[chosenNext] !== undefined) { freq_m_uc[chosenNext]++; freq_total_uc++; }
+				if (pair_m[current] !== undefined) { pair_m[current]++; pair_total++; }
 			} else {
-		const pool = "____" + (characters !== "" ? characters : ".....,,,,!?");
-		const next_c = pool[Math.floor(random_gen() * pool.length)];
-		current = current[1] + next_c;
-		file_output += next_c === "_" ? " " : next_c;
+				const next_c = deadEndPool[Math.floor(random_gen() * deadEndPool.length)];
+				current = current[1] + next_c;
+				file_output += next_c === "_" ? " " : next_c;
 			}
 		}
 		elements.output.textContent = file_output;
