@@ -255,10 +255,11 @@
 			</div>
 
 			<div class="group">
-				<label><span id="labelLetterVariety">Letter Variety (0-100)</span>
+				<!-- Added numerical displays for variety sliders -->
+				<label><span id="labelLetterVariety">Letter Variety (0-100)</span> <b id="valLetterVariety">0</b>
 					<input type="range" id="letterVarietyInput" min="0" max="100" value="0">
 				</label>
-				<label><span id="labelPairVariety">Pair Variety (0-100)</span>
+				<label><span id="labelPairVariety">Pair Variety (0-100)</span> <b id="valPairVariety">0</b>
 					<input type="range" id="pairVarietyInput" min="0" max="100" value="0">
 				</label>
 			</div>
@@ -550,8 +551,11 @@ class TextGeneratorApp {
 	reset() {
 		elements.seedInput.value = 0;
 		elements.textLengthInput.value = 1000;
+		// Reset variety sliders and their numerical displays
 		elements.letterVarietyInput.value = 0;
+		elements.valLetterVariety.textContent = 0;
 		elements.pairVarietyInput.value = 0;
+		elements.valPairVariety.textContent = 0;
 		elements.caseModeInput.value = "normal";
 		elements.charactersFilterInput.value = "";
 		elements.kerningModeInput.value = "typical";
@@ -588,6 +592,10 @@ class TextGeneratorApp {
 			elements[id].addEventListener('input', debouncedGenerate);
 			elements[id].addEventListener('change', debouncedGenerate);
 		});
+
+		// Synchronize variety sliders with their numerical displays
+		elements.letterVarietyInput.addEventListener('input', (e) => elements.valLetterVariety.textContent = e.target.value);
+		elements.pairVarietyInput.addEventListener('input', (e) => elements.valPairVariety.textContent = e.target.value);
 
 		elements.generateBtn.addEventListener('click', () => this.generate());
 		elements.resetBtn.addEventListener('click', () => this.reset());
