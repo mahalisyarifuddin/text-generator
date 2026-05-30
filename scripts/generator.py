@@ -359,7 +359,7 @@ for i in range(text_length):
 				pairmeter[currentpair] = 4
 				numberofpairs += 1
 			tweakpair = 1.0 + equalis_pair * ( (pairtotal/pairmeter[currentpair]/numberofpairs)*5 - 1) 
-			if ' ' in currentpair:
+			if '_' in currentpair:
 				tweakpair = 1.0
 
 			# set tweakkernpair
