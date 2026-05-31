@@ -484,13 +484,22 @@ class TextGeneratorApp {
 		}
 
 		// Word length counting (ignoring bootstrap marker)
-		const cleanWords = processedText.substring(2).split('_').filter(w => w.length > 0);
 		const wordLengths = new Array(51).fill(0);
-		for (const word of cleanWords) {
-			const len = word.length;
-			if (len >= 1 && len <= 50) {
-		wordLengths[len]++;
+		let wordtmp = 0;
+		for (let i = 2; i < processedText.length; i++) {
+			if (lettersSet.has(processedText[i])) {
+				wordtmp++;
+			} else {
+				if (wordtmp > 0) {
+					const len = Math.min(wordtmp, 50);
+					wordLengths[len]++;
+					wordtmp = 0;
+				}
 			}
+		}
+		if (wordtmp > 0) {
+			const len = Math.min(wordtmp, 50);
+			wordLengths[len]++;
 		}
 
 		// Trigram counting
