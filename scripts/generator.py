@@ -2,17 +2,17 @@ import random, os, os.path
 from argparse import ArgumentParser
 
 parser = ArgumentParser()
-parser.add_argument('-language')
-parser.add_argument('-characters', type=str)
-parser.add_argument('-chars')
-parser.add_argument('-kern')
-parser.add_argument('-kernchars')
-parser.add_argument('-kernlevel')
-parser.add_argument('-lettervariety')
-parser.add_argument('-pairvariety')
+parser.add_argument('-language', default='en')
+parser.add_argument('-characters', type=str, default='all')
+parser.add_argument('-chars', default='')
+parser.add_argument('-kern', default='none')
+parser.add_argument('-kernchars', default='')
+parser.add_argument('-kernlevel', default='0')
+parser.add_argument('-lettervariety', default='0')
+parser.add_argument('-pairvariety', default='0')
 parser.add_argument('-generate')
-parser.add_argument('-case')
-parser.add_argument('-frequencies')
+parser.add_argument('-case', default='normal')
+parser.add_argument('-frequencies', default='none')
 args = parser.parse_args()
 
 text_length = 3000
@@ -74,24 +74,26 @@ if args.kernlevel != "0":
 	else:
 			print(args.kernchars)
 else: print("not affected")
+
+kernglobal = 0
 if args.kernlevel == "s3":
 	kernglobal = -1.0
 	print("suppress at -3")
-if args.kernlevel == "s2":
+elif args.kernlevel == "s2":
 	kernglobal = -0.6
 	print("suppress at -2")
-if args.kernlevel == "s1":
+elif args.kernlevel == "s1":
 	kernglobal = -0.3
 	print("suppress at -1")
-if args.kernlevel == "0":
+elif args.kernlevel == "0":
 	kernglobal = 0
-if args.kernlevel == "b1":
+elif args.kernlevel == "b1":
 	kernglobal = 0.3
 	print("boost at 1")
-if args.kernlevel == "b2":
+elif args.kernlevel == "b2":
 	kernglobal = 0.6
 	print("boost at 2")
-if args.kernlevel == "b3":
+elif args.kernlevel == "b3":
 	kernglobal = 0.9
 	print("boost at 3")
 
@@ -341,15 +343,15 @@ for i in range(text_length):
 
 			# set tweakletter
 			if char_j in (lowercase+arabic):
-				if char_byte not in frequencymeter:
-					frequencymeter[char_byte] = 1
+				if char_j not in frequencymeter:
+					frequencymeter[char_j] = 1
 					numberofletters += 1
-				tweakletter = 1.0 + equalisation * ( (frequencytotal/frequencymeter[char_byte]/numberofletters)*5 - 1)
+				tweakletter = 1.0 + equalisation * ( (frequencytotal/frequencymeter[char_j]/numberofletters)*5 - 1)
 			elif char_j in uppercase:
-				if char_byte not in frequencymeterUC:
-					frequencymeterUC[char_byte] = 1
+				if char_j not in frequencymeterUC:
+					frequencymeterUC[char_j] = 1
 					numberoflettersUC += 1
-				tweakletter = 1.0 + equalisation * ( (frequencytotalUC/frequencymeterUC[char_byte]/numberoflettersUC)*5 - 1)
+				tweakletter = 1.0 + equalisation * ( (frequencytotalUC/frequencymeterUC[char_j]/numberoflettersUC)*5 - 1)
 			else:
 				tweakletter = tweakblank
 
@@ -382,11 +384,10 @@ for i in range(text_length):
 				current = current[1] + chosen_next
 				file_output += chosen_next.replace("_"," ")
 
-				chosen_byte = chosen_next.encode('utf-8')
-				if chosen_byte in frequencymeter:
-					frequencymeter[chosen_byte] += 1
-				if chosen_byte in frequencymeterUC:
-					frequencymeterUC[chosen_byte] += 1
+				if chosen_next in frequencymeter:
+					frequencymeter[chosen_next] += 1
+				if chosen_next in frequencymeterUC:
+					frequencymeterUC[chosen_next] += 1
 				if chosen_next in (lowercase + arabic):
 					frequencytotal += 1
 				if chosen_next in uppercase:
@@ -414,7 +415,7 @@ if args.frequencies == "output":
 					line = str(frequencymeter[c]-1).rjust(6) + "&nbsp;&nbsp;</td><td align='center'>"
 					if "ar" in input_languages or "he" in input_languages or "fa" in input_languages:
 						line += "<bdo dir='rtl'>"
-					line += str(c,'utf-8') + "</bdo>"
+					line += c + "</bdo>"
 					tobesorted.append( line )
 		tobesorted.sort()
 		tobesorted.reverse()
@@ -430,7 +431,7 @@ if args.frequencies == "output":
 					line = str(frequencymeterUC[c]-1).rjust(6) + "&nbsp;&nbsp;</td><td align='center'>"
 					if "ar" in input_languages or "he" in input_languages or "fa" in input_languages:
 						line += "<bdo dir='rtl'>"
-					line += str(c,'utf-8') + "</bdo>"
+					line += c + "</bdo>"
 					tobesorted.append( line )
 		tobesorted.sort()
 		tobesorted.reverse()
@@ -448,7 +449,7 @@ if args.frequencies == "output":
 					line = str(pairmeter[c]-4).rjust(6) + "&nbsp;&nbsp;</td><td align='center'>"
 					if "ar" in input_languages or "he" in input_languages or "fa" in input_languages:
 						line += "<bdo dir='rtl'>"
-					line += str(c,'utf-8') + "</bdo>"
+					line += c + "</bdo>"
 					tobesorted.append( line )
 		tobesorted.sort()
 		tobesorted.reverse()
