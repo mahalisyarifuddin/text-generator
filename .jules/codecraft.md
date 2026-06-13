@@ -16,3 +16,9 @@
 **Mode:** Palette & Bolt
 **Learning:** Adding live-preview (auto-generation on input) significantly improves UX but requires robust debouncing and silent failure modes (no alerts on empty input) to avoid being intrusive. Caching complex objects like kerning tweaks (which involve O(N) loops and Math.pow) is essential when many UI triggers can fire rapidly.
 **Action:** Always implement debouncing for live-preview features and ensure dependency tracking for expensive re-computations to maintain 60fps UI responsiveness.
+
+## 2025-06-13 - Optimized Python generator hot loop
+**Mode:** Bolt
+**Learning:** Python 3 dictionary lookups with string keys are significantly faster than repeatedly encoding/decoding strings to bytes for key access. Furthermore, sorting dictionary items inside a loop that runs thousands of times is a major bottleneck; pre-calculating and caching sorted lists of candidates provides a measurable performance boost.
+**Measurement:** Default generation time reduced from ~0.7s to ~0.6s (~15% speedup) for single-language, with greater gains on longer outputs.
+**Action:** Always use string keys for dictionaries in Python 3 and hoist sorting/multiplication logic out of performance-critical loops.
