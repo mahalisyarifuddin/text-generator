@@ -21,6 +21,9 @@ uppercase = 'A\xc1\xc0\xc2\xc4\u0102\u0100\xc3\xc5\u0104\u01fa\u1ea0\xc6\u01fcBC
 lowercase = 'a\xe1\xe0\xe2\xe4\u0103\u0101\xe3\xe5\u0105\u01fb\u1ea1\xe6\u01fdbc\u0107\u010b\u0109\u010d\xe7d\u010f\u0111\xf0e\xe9\xe8\u0117\xea\xeb\u011b\u0115\u0113\u0119fg\u0121\u011d\u011f\u0123h\u0125\u0127i\xed\xec\xee\xef\u012d\u012b\u0129\u012fj\u0135k\u0138\u0137l\u013a\u0140\u013e\u013c\u0142mn\u0144\u0148\xf1\u0146\u0149\u014bo\xf3\xf2\xf4\xf6\u014f\u014d\xf5\u0151\xf8\u01ff\u01a1\u0153pqr\u0155\u0159\u0157s\u015b\u015d\u0161\u015ft\u0165\u0163\xfe\u0167u\xfa\xf9\xfb\xfc\u016d\u016b\u0169\u016f\u0173\u0171\u01b0vw\u1e83\u1e81\u0175\u1e85xy\xfd\u0177\xffz\u017a\u017a\u017c\u017e\u03b1\u03ac\u03b2\u03b3\u03b4\u03b5\u03ad\u03b6\u03b7\u03ae\u03b8\u03b9\u03af\u03ca\u03ba\u03bb\u03bc\u03bd\u03be\u03bf\u03cc\u03c0\u03c1\u03c2\u03c3\u03c4\u03c5\u03cd\u03cb\u03b0\u03c6\u03c7\u03c8\u03c9\u03ce\u0430\u0431\u0432\u0433\u0491\u0453\u0434\u0452\u0435\u0451\u0454\u0436\u0437\u0455\u0438\u0456\u0457\u0439\u0458\u043a\u045c\u043b\u0459\u043c\u043d\u045a\u043e\u043f\u0440\u0441\u0442\u045b\u0443\u045e\u0444\u0445\u0446\u0447\u045f\u0448\u0449\u044a\u044b\u044c\u044d\u044e\u044f\xdf\u0131'
 arabic = '\u0621\u0622\u0623\u0624\u0625\u0626\u0627\u0628\u0629\u062a\u062b\u062c\u062d\u062e\u062f\u0630\u0631\u0632\u0633\u0634\u0635\u0636\u0637\u0638\u0639\u063a\u063b\u063c\u063d\u063e\u063f\u0640\u0641\u0642\u0643\u0644\u0645\u0646\u0647\u0648\u0649'
 letters = uppercase + lowercase + arabic
+uppercase_set = set(uppercase)
+lowercase_and_arabic_set = set(lowercase + arabic)
+letters_set = set(letters)
 
 casedict = {}
 # Establish lowercase to uppercase character mapping
@@ -274,13 +277,13 @@ for inp in inputs:
 		if not t[0] in characters : continue
 		if not t[1] in characters : continue
 		if not t[2] in characters : continue
-	if t[0:2].encode('utf-8') in duplets:
-		if t[2].encode('utf-8') in duplets[t[0:2].encode('utf-8')]:
-			duplets[t[0:2].encode('utf-8')][ t[2].encode('utf-8') ] += v
+	if t[0:2] in duplets:
+		if t[2] in duplets[t[0:2]]:
+			duplets[t[0:2]][ t[2] ] += v
 		else:
-			duplets[t[0:2].encode('utf-8')][ t[2].encode('utf-8') ] = v
+			duplets[t[0:2]][ t[2] ] = v
 	else:
-		duplets[t[0:2].encode('utf-8')] = { t[2].encode('utf-8') : v }
+		duplets[t[0:2]] = { t[2] : v }
 
 # clean dead ends
 for step in range(2):
@@ -288,7 +291,7 @@ for step in range(2):
 	for d in duplets:
 		dead_letters = []
 		for v in duplets[d]:
-			if str(d,'utf-8')[1].encode('utf-8')+v not in duplets:
+			if d[1]+v not in duplets:
 				dead_letters.append(v)
 		for v in dead_letters:
 			del duplets[d][v]
@@ -296,6 +299,14 @@ for step in range(2):
 			dead_duplets.append(d)
 	for d in dead_duplets:
 		del duplets[d]
+
+duplets_sorted = {d: sorted(duplets[d].items()) for d in duplets}
+
+# pre-calculate multipliers
+char_multipliers = {}
+if characters != "":
+	for c in set(characters):
+		char_multipliers[c] = 2 ** (characters.count(c) - 1)
 
 # build text
 if characters != "" and not "." in characters:
@@ -306,10 +317,10 @@ wordtmp = 0
 for i in range(text_length):
 	
 	# check for end of word
-	if current[1] in letters:
+	if current[1] in letters_set:
 		wordtmp += 1
 	else:
-		if current[0] in letters:
+		if current[0] in letters_set:
 			if wordtmp > wordmax: wordtmp = wordmax
 			wordlen_out[wordtmp] += 1
 			wordsum_out += 1
@@ -329,25 +340,22 @@ for i in range(text_length):
 	else:
 		tweakblank = 1
 		
-	if current.encode('utf-8') in duplets: # and duplets[current.encode('utf-8')] != {}:
+	if current in duplets_sorted:
 		cumulative = []
 		sum = 1
 		lastone = i
-		options = sorted(duplets[current.encode('utf-8')].items())
-		for char_byte, count in options:
-			char_j = char_byte.decode('utf-8')
+		options = duplets_sorted[current]
+		for char_j, count in options:
 			# set multiplier
-			multiplier = 1 
-			if characters != "":
-				multiplier = 2** (characters.count(char_j)-1)
+			multiplier = char_multipliers.get(char_j, 1)
 
 			# set tweakletter
-			if char_j in (lowercase+arabic):
+			if char_j in lowercase_and_arabic_set:
 				if char_j not in frequencymeter:
 					frequencymeter[char_j] = 1
 					numberofletters += 1
 				tweakletter = 1.0 + equalisation * ( (frequencytotal/frequencymeter[char_j]/numberofletters)*5 - 1)
-			elif char_j in uppercase:
+			elif char_j in uppercase_set:
 				if char_j not in frequencymeterUC:
 					frequencymeterUC[char_j] = 1
 					numberoflettersUC += 1
@@ -379,8 +387,7 @@ for i in range(text_length):
 		for idx in range(len(cumulative)):
 			if randm < cumulative[idx]:
 				# new character is chosen
-				char_byte, _ = options[idx]
-				chosen_next = char_byte.decode('utf-8')
+				chosen_next, _ = options[idx]
 				current = current[1] + chosen_next
 				file_output += chosen_next.replace("_"," ")
 
@@ -388,9 +395,9 @@ for i in range(text_length):
 					frequencymeter[chosen_next] += 1
 				if chosen_next in frequencymeterUC:
 					frequencymeterUC[chosen_next] += 1
-				if chosen_next in (lowercase + arabic):
+				if chosen_next in lowercase_and_arabic_set:
 					frequencytotal += 1
-				if chosen_next in uppercase:
+				if chosen_next in uppercase_set:
 					frequencytotalUC += 1
 				if current in pairmeter:
 						pairmeter[current] += 1
