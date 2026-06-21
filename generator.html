@@ -711,6 +711,13 @@ class TextGeneratorApp {
 			}
 		}
 
+		const charCategories = new Map();
+		const getCategory = (c) => {
+			if (lowercaseAndArabicSet.has(c)) return 1;
+			if (uppercaseSet.has(c)) return 2;
+			return 0;
+		};
+
 		const remainingLines = lines.slice(i);
 		const duplets = {};
 		for (const line of remainingLines) {
@@ -737,6 +744,10 @@ class TextGeneratorApp {
 			if (!charactersForFilter.has(c)) { skip = true; break; }
 		}
 		if (skip) continue;
+			}
+
+			for (const c of t) {
+		if (!charCategories.has(c)) charCategories.set(c, getCategory(c));
 			}
 
 			const d_key = t.substring(0, 2);
@@ -770,7 +781,10 @@ class TextGeneratorApp {
 			duplets,
 			dupletsSorted,
 			charMultipliers,
-			characters
+			charCategories,
+			characters,
+			allKeys: [...dupletsSorted.keys()].sort(),
+			deadEndPool: "____" + (characters !== "" ? characters : ".....,,,,!?")
 		};
 	}
 
@@ -784,7 +798,7 @@ class TextGeneratorApp {
 			this.updateCache(this.tsvData, caseMode, charFilter);
 		}
 
-		const { wordlenIn, wordsumIn, duplets, dupletsSorted, charMultipliers, characters } = this.cache;
+		const { wordlenIn, wordsumIn, duplets, dupletsSorted, charMultipliers, charCategories, characters, allKeys, deadEndPool } = this.cache;
 		const seed = parseInt(elements.seedInput.value);
 		const textLength = parseInt(elements.textLengthInput.value);
 		const kerningMode = elements.kerningModeInput.value;
@@ -794,7 +808,9 @@ class TextGeneratorApp {
 
 		const wordmax = 6;
 		let kerntweaks = this.cache.kerntweaks;
-		if (this.cache.kerningMode !== kerningMode || this.cache.kerningLevel !== kerningLevel || this.cache.customKernPairs !== customKernPairs) {
+		let optionsMeta = this.cache.optionsMeta;
+
+		if (this.cache.kerningMode !== kerningMode || this.cache.kerningLevel !== kerningLevel || this.cache.customKernPairs !== customKernPairs || !optionsMeta) {
 			const kernglobal = { "s3": -1.0, "s2": -0.6, "s1": -0.3, "0": 0, "b1": 0.3, "b2": 0.6, "b3": 0.9 }[kerningLevel] || 0;
 			kerntweaks = {};
 			if (kernglobal !== 0) {
@@ -809,10 +825,31 @@ class TextGeneratorApp {
 					}
 				}
 			}
+
+			optionsMeta = new Map();
+			for (const [d, opts] of dupletsSorted) {
+				const char2 = d[1];
+				const currentDuplet = duplets[d];
+				const metaArr = opts.map(nextChar => {
+					const pair = char2 + nextChar;
+					const tweakkern = (kerntweaks && kerntweaks[pair]) || 1;
+					const mult = charMultipliers.get(nextChar) || 1;
+					const count = currentDuplet[nextChar];
+					return {
+						char: nextChar,
+						baseWeight: count * mult * tweakkern,
+						category: charCategories.get(nextChar) || 0,
+						pair: pair
+					};
+				});
+				optionsMeta.set(d, metaArr);
+			}
+
 			this.cache.kerningMode = kerningMode;
 			this.cache.kerningLevel = kerningLevel;
 			this.cache.customKernPairs = customKernPairs;
 			this.cache.kerntweaks = kerntweaks;
+			this.cache.optionsMeta = optionsMeta;
 		}
 
 		const letterVariety = parseInt(elements.letterVarietyInput.value);
@@ -827,8 +864,7 @@ class TextGeneratorApp {
 			const pool_c = "_" + characters;
 			current = pool_c[Math.floor(random_gen() * pool_c.length)] + "_";
 		}
-		if (!dupletsSorted.has(current)) {
-			const allKeys = [...dupletsSorted.keys()].sort();
+		if (!optionsMeta.has(current)) {
 			if (allKeys.length > 0) current = allKeys[Math.floor(random_gen() * allKeys.length)];
 		}
 
@@ -837,7 +873,6 @@ class TextGeneratorApp {
 		const freq_m = {}, freq_m_uc = {}, pair_m = {};
 		let freq_total = 1, freq_total_uc = 1, pair_total = 1;
 		let num_l = 0, num_l_uc = 0, num_pairs = 0;
-		const deadEndPool = "____" + (characters !== "" ? characters : ".....,,,,!?");
 		const tweakLBase = 1.0 - equalization;
 		const tweakPBase = 1.0 - equalisPair;
 
@@ -860,11 +895,10 @@ class TextGeneratorApp {
 				tweakblank = Math.max(0.25, Math.min(30.0, tweakblank));
 			}
 
-			const options = dupletsSorted.get(current);
+			const options = optionsMeta.get(current);
 			if (options && options.length > 0) {
 				const cumulative = this.cumulativeBuffer;
 				let running_sum = 1;
-				const currentDuplet = duplets[current];
 				const char2 = current[1];
 
 				const tweakLFactor = equalization * 5 * freq_total;
@@ -873,35 +907,34 @@ class TextGeneratorApp {
 
 				const numOptions = options.length;
 				for (let k = 0; k < numOptions; k++) {
-					const nextChar = options[k];
-					const mult = charMultipliers.get(nextChar) || 1;
+					const opt = options[k];
+					const nextChar = opt.char;
 					let tweakl = 1;
-					if (lowercaseAndArabicSet.has(nextChar)) {
+					if (opt.category === 1) {
 						if (!freq_m[nextChar]) { freq_m[nextChar] = 1; num_l++; }
 						tweakl = tweakLBase + (tweakLFactor / (freq_m[nextChar] * num_l));
-					} else if (uppercaseSet.has(nextChar)) {
+					} else if (opt.category === 2) {
 						if (!freq_m_uc[nextChar]) { freq_m_uc[nextChar] = 1; num_l_uc++; }
 						tweakl = tweakLBase + (tweakLFactorUC / (freq_m_uc[nextChar] * num_l_uc));
 					} else tweakl = tweakblank;
 
-					const pair = char2 + nextChar;
+					const pair = opt.pair;
 					if (!pair_m[pair]) { pair_m[pair] = 4; num_pairs++; }
 					let tweakp = 1.0;
 					if (char2 !== '_' && nextChar !== '_') {
 						tweakp = tweakPBase + (tweakPFactor / (pair_m[pair] * num_pairs));
 					}
-					const tweakkern = (kerntweaks && kerntweaks[pair]) || 1;
 
-					running_sum += currentDuplet[nextChar] * tweakl * tweakp * tweakkern * mult;
+					running_sum += opt.baseWeight * tweakl * tweakp;
 					cumulative[k] = running_sum;
 				}
 
 				const correction = 55000.0 / running_sum;
 				const randm = Math.floor(random_gen() * 55000);
-				let chosenNext = options[numOptions - 1];
+				let chosenNext = options[numOptions - 1].char;
 				for (let k = 0; k < numOptions; k++) {
 					if (randm < Math.floor(cumulative[k] * correction)) {
-						chosenNext = options[k];
+						chosenNext = options[k].char;
 						break;
 					}
 				}
