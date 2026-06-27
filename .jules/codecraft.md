@@ -22,3 +22,8 @@
 **Learning:** Python 3 dictionary lookups with string keys are significantly faster than repeatedly encoding/decoding strings to bytes for key access. Furthermore, sorting dictionary items inside a loop that runs thousands of times is a major bottleneck; pre-calculating and caching sorted lists of candidates provides a measurable performance boost.
 **Measurement:** Default generation time reduced from ~0.7s to ~0.6s (~15% speedup) for single-language, with greater gains on longer outputs.
 **Action:** Always use string keys for dictionaries in Python 3 and hoist sorting/multiplication logic out of performance-critical loops.
+
+## 2025-06-14 - Eliminated alphabetical bias in variety selection
+**Mode:** Medic
+**Learning:** Mutating global frequency counters and set sizes *inside* a candidate evaluation loop introduces statistical bias. Candidates appearing earlier in a sorted list (e.g., alphabetically) erroneously receive a higher "unseen character" boost during their first encounter compared to later candidates in the same generation step.
+**Action:** Use lookahead/effective calculations (e.g., `count = map.get(char, 1)`, `eff_size = size + (1 if new else 0)`) during probability weighting, and only commit state mutations after a selection is definitively made.

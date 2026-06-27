@@ -911,18 +911,21 @@ class TextGeneratorApp {
 					const nextChar = opt.char;
 					let tweakl = 1;
 					if (opt.category === 1) {
-						if (!freq_m[nextChar]) { freq_m[nextChar] = 1; num_l++; }
-						tweakl = tweakLBase + (tweakLFactor / (freq_m[nextChar] * num_l));
+						const count = freq_m[nextChar] || 1;
+						const eff_num_l = num_l + (freq_m[nextChar] ? 0 : 1);
+						tweakl = tweakLBase + (tweakLFactor / (count * eff_num_l));
 					} else if (opt.category === 2) {
-						if (!freq_m_uc[nextChar]) { freq_m_uc[nextChar] = 1; num_l_uc++; }
-						tweakl = tweakLBase + (tweakLFactorUC / (freq_m_uc[nextChar] * num_l_uc));
+						const count = freq_m_uc[nextChar] || 1;
+						const eff_num_l_uc = num_l_uc + (freq_m_uc[nextChar] ? 0 : 1);
+						tweakl = tweakLBase + (tweakLFactorUC / (count * eff_num_l_uc));
 					} else tweakl = tweakblank;
 
 					const pair = opt.pair;
-					if (!pair_m[pair]) { pair_m[pair] = 4; num_pairs++; }
 					let tweakp = 1.0;
 					if (char2 !== '_' && nextChar !== '_') {
-						tweakp = tweakPBase + (tweakPFactor / (pair_m[pair] * num_pairs));
+						const count = pair_m[pair] || 4;
+						const eff_num_pairs = num_pairs + (pair_m[pair] ? 0 : 1);
+						tweakp = tweakPBase + (tweakPFactor / (count * eff_num_pairs));
 					}
 
 					running_sum += opt.baseWeight * tweakl * tweakp;
@@ -939,11 +942,20 @@ class TextGeneratorApp {
 					}
 				}
 
+				const chosenCategory = charCategories.get(chosenNext) || 0;
+				if (chosenCategory === 1) {
+					if (!freq_m[chosenNext]) { freq_m[chosenNext] = 1; num_l++; }
+					freq_m[chosenNext]++; freq_total++;
+				} else if (chosenCategory === 2) {
+					if (!freq_m_uc[chosenNext]) { freq_m_uc[chosenNext] = 1; num_l_uc++; }
+					freq_m_uc[chosenNext]++; freq_total_uc++;
+				}
+
 				current = char2 + chosenNext;
 				file_output += chosenNext === "_" ? " " : chosenNext;
-				if (freq_m[chosenNext] !== undefined) { freq_m[chosenNext]++; freq_total++; }
-				if (freq_m_uc[chosenNext] !== undefined) { freq_m_uc[chosenNext]++; freq_total_uc++; }
-				if (pair_m[current] !== undefined) { pair_m[current]++; pair_total++; }
+
+				if (!pair_m[current]) { pair_m[current] = 4; num_pairs++; }
+				pair_m[current]++; pair_total++;
 			} else {
 				const next_c = deadEndPool[Math.floor(random_gen() * deadEndPool.length)];
 				current = current[1] + next_c;
