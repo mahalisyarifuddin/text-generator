@@ -351,26 +351,23 @@ for i in range(text_length):
 
 			# set tweakletter
 			if char_j in lowercase_and_arabic_set:
-				if char_j not in frequencymeter:
-					frequencymeter[char_j] = 1
-					numberofletters += 1
-				tweakletter = 1.0 + equalisation * ( (frequencytotal/frequencymeter[char_j]/numberofletters)*5 - 1)
+				count_j = frequencymeter.get(char_j, 1)
+				eff_num_l = numberofletters + (0 if char_j in frequencymeter else 1)
+				tweakletter = 1.0 + equalisation * ( (frequencytotal/count_j/eff_num_l)*5 - 1)
 			elif char_j in uppercase_set:
-				if char_j not in frequencymeterUC:
-					frequencymeterUC[char_j] = 1
-					numberoflettersUC += 1
-				tweakletter = 1.0 + equalisation * ( (frequencytotalUC/frequencymeterUC[char_j]/numberoflettersUC)*5 - 1)
+				count_j = frequencymeterUC.get(char_j, 1)
+				eff_num_l_uc = numberoflettersUC + (0 if char_j in frequencymeterUC else 1)
+				tweakletter = 1.0 + equalisation * ( (frequencytotalUC/count_j/eff_num_l_uc)*5 - 1)
 			else:
 				tweakletter = tweakblank
 
 			# set tweakpair
 			currentpair = current[1]+char_j
-			if currentpair not in pairmeter:
-				pairmeter[currentpair] = 4
-				numberofpairs += 1
-			tweakpair = 1.0 + equalis_pair * ( (pairtotal/pairmeter[currentpair]/numberofpairs)*5 - 1) 
-			if '_' in currentpair:
-				tweakpair = 1.0
+			tweakpair = 1.0
+			if '_' not in currentpair:
+				count_p = pairmeter.get(currentpair, 4)
+				eff_num_pairs = numberofpairs + (0 if currentpair in pairmeter else 1)
+				tweakpair = 1.0 + equalis_pair * ( (pairtotal/count_p/eff_num_pairs)*5 - 1)
 
 			# set tweakkernpair
 			if kernglobal != 0 and currentpair in kerntweaks:
@@ -388,20 +385,29 @@ for i in range(text_length):
 			if randm < cumulative[idx]:
 				# new character is chosen
 				chosen_next, _ = options[idx]
+
+				# update frequencies
+				if chosen_next in lowercase_and_arabic_set:
+					if chosen_next not in frequencymeter:
+						frequencymeter[chosen_next] = 1
+						numberofletters += 1
+					frequencymeter[chosen_next] += 1
+					frequencytotal += 1
+				elif chosen_next in uppercase_set:
+					if chosen_next not in frequencymeterUC:
+						frequencymeterUC[chosen_next] = 1
+						numberoflettersUC += 1
+					frequencymeterUC[chosen_next] += 1
+					frequencytotalUC += 1
+
 				current = current[1] + chosen_next
 				file_output += chosen_next.replace("_"," ")
 
-				if chosen_next in frequencymeter:
-					frequencymeter[chosen_next] += 1
-				if chosen_next in frequencymeterUC:
-					frequencymeterUC[chosen_next] += 1
-				if chosen_next in lowercase_and_arabic_set:
-					frequencytotal += 1
-				if chosen_next in uppercase_set:
-					frequencytotalUC += 1
-				if current in pairmeter:
-						pairmeter[current] += 1
-						pairtotal += 1
+				if current not in pairmeter:
+					pairmeter[current] = 4
+					numberofpairs += 1
+				pairmeter[current] += 1
+				pairtotal += 1
 				break
 	else:
 		if characters != "":
