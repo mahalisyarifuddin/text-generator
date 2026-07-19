@@ -249,11 +249,26 @@ else:
 del inputs[0]
 
 # build wordlen_in
-for i in range(len(wordlen_in)):
-	wordlen_in[int(inputs[0].split()[1][4:7])] += int(inputs[0].split()[0])
-	wordsum_in += int(inputs[0].split()[0])
-	del inputs[0]
-	if len( inputs[0].split()[1] ) == 3: break
+while inputs:
+	line = inputs[0].strip()
+	if not line:
+		del inputs[0]
+		continue
+	parts = line.split()
+	if len(parts) < 2:
+		break
+	count_str, key = parts[0], parts[1]
+	if key.startswith('word'):
+		try:
+			idx = int(key[4:7])
+			if idx < len(wordlen_in):
+				wordlen_in[idx] += int(count_str)
+				wordsum_in += int(count_str)
+		except (ValueError, IndexError):
+			pass
+		del inputs[0]
+	else:
+		break
 
 # build duplets
 duplets = {}

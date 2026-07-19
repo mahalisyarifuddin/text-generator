@@ -27,3 +27,8 @@
 **Mode:** Medic
 **Learning:** Mutating global frequency counters and set sizes *inside* a candidate evaluation loop introduces statistical bias. Candidates appearing earlier in a sorted list (e.g., alphabetically) erroneously receive a higher "unseen character" boost during their first encounter compared to later candidates in the same generation step.
 **Action:** Use lookahead/effective calculations (e.g., `count = map.get(char, 1)`, `eff_size = size + (1 if new else 0)`) during probability weighting, and only commit state mutations after a selection is definitively made.
+
+## 2026-05-03 - Robust TSV Parsing in Python Generator
+**Mode:** Medic
+**Learning:** Rigid index-based slicing and assumption of exact line block ordering when parsing external TSV assets can easily lead to ValueError or IndexError crashes if custom, legacy, or malformed corpora are used. A robust parsing scheme should dynamically examine row headers and handle exceptions gracefully.
+**Action:** Always parse key-value assets dynamically with prefix/pattern checks and wrap numeric parsing in safety blocks.
