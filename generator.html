@@ -301,7 +301,7 @@
 				</label>
 			</div>
 
-			<div class="group">
+			<div class="group" id="customKernPairsGroup">
 				<label id="labelCustomKernPairs" for="customKernPairsInput">Custom Kern Pairs
 					<input type="text" id="customKernPairsInput" placeholder="AV VA Te">
 				</label>
@@ -557,6 +557,20 @@ class TextGeneratorApp {
 		};
 	}
 
+	updateKerningUI() {
+		const mode = elements.kerningModeInput.value;
+		if (mode === "none") {
+			elements.kerningLevelInput.disabled = true;
+			elements.customKernPairsGroup.classList.add('hidden');
+		} else if (mode === "typical") {
+			elements.kerningLevelInput.disabled = false;
+			elements.customKernPairsGroup.classList.add('hidden');
+		} else if (mode === "custom") {
+			elements.kerningLevelInput.disabled = false;
+			elements.customKernPairsGroup.classList.remove('hidden');
+		}
+	}
+
 	reset() {
 		elements.seedInput.value = 0;
 		elements.textLengthInput.value = 1000;
@@ -570,6 +584,7 @@ class TextGeneratorApp {
 		elements.kerningModeInput.value = "typical";
 		elements.kerningLevelInput.value = "0";
 		elements.customKernPairsInput.value = "";
+		this.updateKerningUI();
 		this.generate();
 	}
 
@@ -587,6 +602,8 @@ class TextGeneratorApp {
 				this.tsvData = this.corpusToTrigrams(rawData, file.name);
 				elements.conversionStatus.classList.remove('hidden');
 			}
+			// Automatically trigger text generation once file is successfully uploaded and parsed
+			this.generate();
 		};
 		reader.readAsText(file);
 			}
@@ -606,7 +623,13 @@ class TextGeneratorApp {
 		elements.letterVarietyInput.addEventListener('input', (e) => elements.valLetterVariety.textContent = e.target.value);
 		elements.pairVarietyInput.addEventListener('input', (e) => elements.valPairVariety.textContent = e.target.value);
 
-		elements.generateBtn.addEventListener('click', () => this.generate());
+		elements.generateBtn.addEventListener('click', () => {
+			if (!this.tsvData) {
+				alert(this.string('alertNoFile'));
+			} else {
+				this.generate();
+			}
+		});
 		elements.resetBtn.addEventListener('click', () => this.reset());
 		elements.randomizeLink.addEventListener('click', () => {
 			elements.seedInput.value = Math.floor(Math.random() * 1000000);
@@ -636,10 +659,14 @@ class TextGeneratorApp {
 		elements.language.addEventListener('change', () => this.updateUIStrings());
 		elements.theme.addEventListener('change', (e) => this.applyTheme(e.target.value));
 
+		elements.kerningModeInput.addEventListener('change', () => this.updateKerningUI());
+		elements.kerningModeInput.addEventListener('input', () => this.updateKerningUI());
+
 		// Browser language detection
 		const browserLang = navigator.language.split('-')[0];
 		if (translations[browserLang]) elements.language.value = browserLang;
 
+		this.updateKerningUI();
 		this.updateUIStrings();
 	}
 
