@@ -10,12 +10,12 @@ parser.add_argument('-kernchars', default='')
 parser.add_argument('-kernlevel', default='0')
 parser.add_argument('-lettervariety', default='0')
 parser.add_argument('-pairvariety', default='0')
-parser.add_argument('-generate')
+parser.add_argument('-generate', type=int, default=3000)
 parser.add_argument('-case', default='normal')
 parser.add_argument('-frequencies', default='none')
 args = parser.parse_args()
 
-text_length = 3000
+text_length = args.generate
 
 uppercase = 'AÁÀÂÄĂĀÃÅĄǺẠÆǼBCĆĊĈČÇDĎĐÐEÉÈĖÊËĚĔĒĘFGĠĜĞĢHĤĦIÍÌÎÏĬĪĨĮJĴKĶLĹĿĽĻŁMNŃŇÑŅŊOÓÒÔÖŎŌÕŐØǾƠŒPQRŔŘŖSŚŜŠŞTŤŢÞŦUÚÙÛÜŬŪŨŮŲŰƯVWẂẀŴẄXYÝŶŸZŹŻŽΑΆΒΓΔΕΈΖΗΉΘΙΊΪΚΛΜΝΞΟΌΠΡΣΤΥΎΫΦΧΨΩΏАБВГҐЃДЂЕЁЄЖЗЅИІЇЙЈКЌЛЉМНЊОПРСТЋУЎФХЦЧЏШЩЪЫЬЭЮЯ'
 lowercase = 'aáàâäăāãåąǻạæǽbcćċĉčçdďđðeéèėêëěĕēęfgġĝğģhĥħiíìîïĭīĩįjĵkĸķlĺŀľļłmnńňñņŉŋoóòôöŏōõőøǿơœpqrŕřŗsśŝšştťţþŧuúùûüŭūũůųűưvwẃẁŵẅxyýŷÿzźżžαάβγδεέζηήθιίϊκλμνξοόπρςστυύϋΰφχψωώабвгґѓдђеёєжзѕиіїйјќлљмнњопрстћуўфхцчџшщъыьэюяßıк'

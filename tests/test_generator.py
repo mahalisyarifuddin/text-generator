@@ -39,6 +39,20 @@ def test_well_formed_tsv(temp_language_file):
     assert "Traceback" not in res.stderr
     assert "ValueError" not in res.stdout
 
+def test_custom_generate_length():
+    # Verify that generator correctly scales output length using the -generate CLI argument
+    cmd_50 = ["python3", "scripts/generator.py", "-language", "en", "-generate", "50"]
+    res_50 = subprocess.run(cmd_50, capture_output=True, text=True)
+    assert res_50.returncode == 0
+    text_part_50 = res_50.stdout.split("<br><br>\n")[1].split(".</bdo>")[0]
+    assert len(text_part_50) == 60
+
+    cmd_120 = ["python3", "scripts/generator.py", "-language", "en", "-generate", "120"]
+    res_120 = subprocess.run(cmd_120, capture_output=True, text=True)
+    assert res_120.returncode == 0
+    text_part_120 = res_120.stdout.split("<br><br>\n")[1].split(".</bdo>")[0]
+    assert len(text_part_120) == 130
+
 def test_missing_word_entries_tsv(temp_language_file):
     content = """combined from test_missing_word
                   10\t_th
