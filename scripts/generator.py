@@ -13,6 +13,7 @@ parser.add_argument('-pairvariety', default='0')
 parser.add_argument('-generate', type=int, default=3000)
 parser.add_argument('-case', default='normal')
 parser.add_argument('-frequencies', default='none')
+parser.add_argument('-seed', type=int, default=None)
 args = parser.parse_args()
 
 text_length = args.generate
@@ -207,7 +208,10 @@ wordsum_out = wordmax-2
 tweaklimit = 30.0
 tweak_upto = 15
 text_length += 10
-random.seed()
+if args.seed is not None:
+	random.seed(args.seed)
+else:
+	random.seed()
 file_output = ("")
 if characters != "":
 	characters = "_" + characters
