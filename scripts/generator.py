@@ -57,11 +57,12 @@ for lang in input_languages:
 		print(lang)
 
 print("&nbsp;&nbsp;&nbsp;characters: ")
-if args.characters == "all":
+char_arg = args.chars if args.chars else (args.characters if args.characters != "all" else "")
+if not char_arg:
 		print("all characters")
 		characters = ''
 else:
-		temp = args.chars
+		temp = char_arg
 		characters = ''
 		for i in range(len(temp)):
 				if args.case == "allcaps" and str(temp[i]) in casedict:

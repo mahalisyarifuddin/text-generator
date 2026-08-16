@@ -39,6 +39,25 @@ def test_well_formed_tsv(temp_language_file):
     assert "Traceback" not in res.stderr
     assert "ValueError" not in res.stdout
 
+def test_character_filter_cli_flags():
+    # Verify that -characters abc filters output text to 'a', 'b', 'c', and spaces, and prints 'abc' header
+    cmd_chars1 = ["python3", "scripts/generator.py", "-language", "en", "-characters", "abc", "-generate", "100", "-seed", "42"]
+    res1 = subprocess.run(cmd_chars1, capture_output=True, text=True)
+    assert res1.returncode == 0
+    assert "&nbsp;&nbsp;&nbsp;characters: \nabc" in res1.stdout
+    text_part1 = res1.stdout.split("<br><br>\n")[1].split(".</bdo>")[0]
+    allowed_chars = set("abc ")
+    assert all(c in allowed_chars for c in text_part1)
+
+    # Verify that -chars abc produces identical character header and filtered output
+    cmd_chars2 = ["python3", "scripts/generator.py", "-language", "en", "-chars", "abc", "-generate", "100", "-seed", "42"]
+    res2 = subprocess.run(cmd_chars2, capture_output=True, text=True)
+    assert res2.returncode == 0
+    assert "&nbsp;&nbsp;&nbsp;characters: \nabc" in res2.stdout
+    text_part2 = res2.stdout.split("<br><br>\n")[1].split(".</bdo>")[0]
+    assert all(c in allowed_chars for c in text_part2)
+    assert text_part1 == text_part2
+
 def test_seed_reproducibility():
     # Verify deterministic output when the same seed is provided
     cmd_seed1_a = ["python3", "scripts/generator.py", "-language", "en", "-seed", "42", "-generate", "100"]
