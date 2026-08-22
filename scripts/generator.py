@@ -144,7 +144,9 @@ if not os.path.isfile(triplets_filename):
 		f.close()
 		del inputs[0]
 		for t in inputs:
-			triplets[i][t.split()[1]] = t.split()[0]
+			parts = t.split()
+			if len(parts) >= 2:
+				triplets[i][parts[1]] = parts[0]
 	
 	# build main array
 	combi = {}
@@ -238,7 +240,12 @@ if kernglobal != 0:
 		del inputs[0]
 		kerntweaks = {}
 		for inp in inputs:
-			kerntweaks[inp.split()[1]] = 1.0 * int(inp.split()[0])**kernglobal
+			parts = inp.split()
+			if len(parts) >= 2:
+				try:
+					kerntweaks[parts[1]] = 1.0 * int(parts[0])**kernglobal
+				except ValueError:
+					pass
 	else:
 		kerntweaks = {}
 		for inp in args.kernchars.split():
@@ -278,7 +285,19 @@ while inputs:
 # build duplets
 duplets = {}
 for inp in inputs:
-	temp = inp.split()[1]
+	line = inp.strip()
+	if not line:
+		continue
+	parts = line.split()
+	if len(parts) < 2:
+		continue
+	try:
+		v = int(parts[0])
+	except ValueError:
+		continue
+	temp = parts[1]
+	if len(temp) < 3:
+		continue
 	t = ''
 	for i in range(len(temp)):
 		if args.case == "allcaps" and str(temp[i]) in casedict:
@@ -290,8 +309,6 @@ for inp in inputs:
 			continue
 		if t[1] == '_' and t[2] in casedict:
 			continue
-
-	v = int(inp.split()[0])
 	# ignore all triplets that contain the wrong characters
 	if characters != "":
 		if not t[0] in characters : continue
