@@ -39,6 +39,25 @@ def test_well_formed_tsv(temp_language_file):
     assert "Traceback" not in res.stderr
     assert "ValueError" not in res.stdout
 
+def test_empty_and_short_duplet_lines_tsv(temp_language_file):
+    content = """combined from test_empty_duplets
+                  10\tword001
+
+                  20\t_th
+                  single_token
+                  abc\t_th
+                  15\ta
+                  25\t_he
+                  30\the_
+
+"""
+    lang = temp_language_file("test_empty_duplets", content)
+    res = run_generator(lang)
+    assert res.returncode == 0
+    assert "Just Another Test Text Generator" in res.stdout
+    assert "Traceback" not in res.stderr
+    assert "IndexError" not in res.stderr
+
 def test_character_filter_cli_flags():
     # Verify that -characters abc filters output text to 'a', 'b', 'c', and spaces, and prints 'abc' header
     cmd_chars1 = ["python3", "scripts/generator.py", "-language", "en", "-characters", "abc", "-generate", "100", "-seed", "42"]
