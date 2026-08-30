@@ -345,6 +345,25 @@ if characters != "":
 	for c in set(characters):
 		char_multipliers[c] = 2 ** (characters.count(c) - 1)
 
+# Pre-calculate option metadata for hot generation loop
+duplets_meta = {}
+for d, options in duplets_sorted.items():
+	meta = []
+	char2 = d[1]
+	for char_j, count in options:
+		multiplier = char_multipliers.get(char_j, 1)
+		currentpair = char2 + char_j
+		tweakkernpair = kerntweaks[currentpair] if (kernglobal != 0 and currentpair in kerntweaks) else 1
+		base_weight = 1.0 * count * tweakkernpair * multiplier
+		if char_j in lowercase_and_arabic_set:
+			cat = 1
+		elif char_j in uppercase_set:
+			cat = 2
+		else:
+			cat = 0
+		meta.append((char_j, base_weight, cat, currentpair))
+	duplets_meta[d] = meta
+
 # build text
 if characters != "" and not "." in characters:
 	current = random.choice(characters) + "_"
@@ -377,21 +396,17 @@ for i in range(text_length):
 	else:
 		tweakblank = 1
 		
-	if current in duplets_sorted:
+	if current in duplets_meta:
 		cumulative = []
-		sum = 1
-		lastone = i
-		options = duplets_sorted[current]
-		for char_j, count in options:
-			# set multiplier
-			multiplier = char_multipliers.get(char_j, 1)
-
+		sum_val = 1
+		options = duplets_meta[current]
+		for char_j, base_weight, cat, currentpair in options:
 			# set tweakletter
-			if char_j in lowercase_and_arabic_set:
+			if cat == 1:
 				count_j = frequencymeter.get(char_j, 1)
 				eff_num_l = numberofletters + (0 if char_j in frequencymeter else 1)
 				tweakletter = 1.0 + equalisation * ( (frequencytotal/count_j/eff_num_l)*5 - 1)
-			elif char_j in uppercase_set:
+			elif cat == 2:
 				count_j = frequencymeterUC.get(char_j, 1)
 				eff_num_l_uc = numberoflettersUC + (0 if char_j in frequencymeterUC else 1)
 				tweakletter = 1.0 + equalisation * ( (frequencytotalUC/count_j/eff_num_l_uc)*5 - 1)
@@ -399,38 +414,31 @@ for i in range(text_length):
 				tweakletter = tweakblank
 
 			# set tweakpair
-			currentpair = current[1]+char_j
 			tweakpair = 1.0
 			if '_' not in currentpair:
 				count_p = pairmeter.get(currentpair, 4)
 				eff_num_pairs = numberofpairs + (0 if currentpair in pairmeter else 1)
 				tweakpair = 1.0 + equalis_pair * ( (pairtotal/count_p/eff_num_pairs)*5 - 1)
 
-			# set tweakkernpair
-			if kernglobal != 0 and currentpair in kerntweaks:
-				tweakkernpair = kerntweaks[currentpair]
-			else:
-				tweakkernpair = 1
-
-			sum += 1.0 * count * tweakletter * tweakpair * tweakkernpair * multiplier
-			cumulative.append(sum)
-		correction = 55000.0 / sum
+			sum_val += base_weight * tweakletter * tweakpair
+			cumulative.append(sum_val)
+		correction = 55000.0 / sum_val
 		for idx in range(len(cumulative)):
 				cumulative[idx] = int(cumulative[idx] * correction)
 		randm = random.randrange(55000)
 		for idx in range(len(cumulative)):
 			if randm < cumulative[idx]:
 				# new character is chosen
-				chosen_next, _ = options[idx]
+				chosen_next, _, cat, _ = options[idx]
 
 				# update frequencies
-				if chosen_next in lowercase_and_arabic_set:
+				if cat == 1:
 					if chosen_next not in frequencymeter:
 						frequencymeter[chosen_next] = 1
 						numberofletters += 1
 					frequencymeter[chosen_next] += 1
 					frequencytotal += 1
-				elif chosen_next in uppercase_set:
+				elif cat == 2:
 					if chosen_next not in frequencymeterUC:
 						frequencymeterUC[chosen_next] = 1
 						numberoflettersUC += 1
