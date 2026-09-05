@@ -39,6 +39,16 @@ def test_well_formed_tsv(temp_language_file):
     assert "Traceback" not in res.stderr
     assert "ValueError" not in res.stdout
 
+def test_utf8_corpus_file_reading():
+    # Verify that generator loads UTF-8 corpus files with non-ASCII characters without UnicodeDecodeError
+    env = dict(os.environ, LC_ALL="C", PYTHONUTF8="0")
+    cmd = ["python3", "scripts/generator.py", "-language", "ru", "-generate", "100", "-kern", "typ", "-kernlevel", "b1"]
+    res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", env=env)
+    assert res.returncode == 0
+    assert "Just Another Test Text Generator" in res.stdout
+    assert "UnicodeDecodeError" not in res.stderr
+    assert "Traceback" not in res.stderr
+
 def test_empty_and_short_duplet_lines_tsv(temp_language_file):
     content = """combined from test_empty_duplets
                   10\tword001

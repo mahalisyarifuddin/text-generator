@@ -32,3 +32,8 @@
 **Mode:** Medic
 **Learning:** Rigid index-based slicing and assumption of exact line block ordering when parsing external TSV assets can easily lead to ValueError or IndexError crashes if custom, legacy, or malformed corpora are used. A robust parsing scheme should dynamically examine row headers and handle exceptions gracefully.
 **Action:** Always parse key-value assets dynamically with prefix/pattern checks and wrap numeric parsing in safety blocks.
+
+## 2026-05-04 - Explicit UTF-8 Encoding for Cross-Platform Corpus File I/O
+**Mode:** Medic
+**Learning:** Relying on default system encoding in Python `open()` causes `UnicodeDecodeError` and `UnicodeEncodeError` when reading non-ASCII corpus datasets (e.g., Russian, Greek, German, Arabic) or printing output under environments with non-UTF-8 default locales (such as `LC_ALL=C` or Windows default ANSI code pages).
+**Action:** Always specify `encoding='utf-8'` explicitly for all text file `open()` operations and reconfigure `sys.stdout` to UTF-8 when building CLI tools that handle international character datasets.
