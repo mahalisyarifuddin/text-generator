@@ -1,5 +1,11 @@
-import random, os, os.path
+import random, os, os.path, sys
 from argparse import ArgumentParser
+
+if hasattr(sys.stdout, 'reconfigure'):
+	try:
+		sys.stdout.reconfigure(encoding='utf-8')
+	except Exception:
+		pass
 
 parser = ArgumentParser()
 parser.add_argument('-language', default='en')
@@ -137,7 +143,7 @@ if not os.path.isfile(triplets_filename):
 	triplets = []
 	inputs = []
 	for i in range(n):
-		f=open( os.path.join( os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) ), 'languages', 'triplets_'+input_languages[i]+'.txt'), 'r' )
+		f=open( os.path.join( os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) ), 'languages', 'triplets_'+input_languages[i]+'.txt'), 'r', encoding='utf-8' )
 		file_output_merged += " " + input_languages[i]
 		triplets.append({})
 		inputs = f.readlines()
@@ -191,7 +197,7 @@ if not os.path.isfile(triplets_filename):
 	
 	# write output file
 	try:
-		f=open(triplets_filename, 'w')
+		f=open(triplets_filename, 'w', encoding='utf-8')
 		f.write(file_output_merged)
 		f.close()
 	except IOError:
@@ -234,7 +240,7 @@ numberofpairs = 0
 if kernglobal != 0:
 	if args.kern == "typ":
 		kern_filename = os.path.join( os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) ), 'kerning.txt' )
-		f=open(kern_filename, 'r')
+		f=open(kern_filename, 'r', encoding='utf-8')
 		inputs = f.readlines()
 		f.close()
 		del inputs[0]
@@ -255,7 +261,7 @@ if kernglobal != 0:
 if file_output_merged:
 	inputs = file_output_merged.split( '\n' )
 else:
-	f=open(triplets_filename, 'r')
+	f=open(triplets_filename, 'r', encoding='utf-8')
 	inputs = f.readlines()
 	f.close()
 del inputs[0]
