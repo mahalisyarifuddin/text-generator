@@ -74,7 +74,7 @@ def test_character_filter_cli_flags():
     res1 = subprocess.run(cmd_chars1, capture_output=True, text=True)
     assert res1.returncode == 0
     assert "&nbsp;&nbsp;&nbsp;characters: \nabc" in res1.stdout
-    text_part1 = res1.stdout.split("<br><br>\n")[1].split(".</bdo>")[0]
+    text_part1 = res1.stdout.split("<br><br>\n")[1].split("&nbsp;&#150;")[0].rstrip(".")
     allowed_chars = set("abc ")
     assert all(c in allowed_chars for c in text_part1)
 
@@ -83,7 +83,7 @@ def test_character_filter_cli_flags():
     res2 = subprocess.run(cmd_chars2, capture_output=True, text=True)
     assert res2.returncode == 0
     assert "&nbsp;&nbsp;&nbsp;characters: \nabc" in res2.stdout
-    text_part2 = res2.stdout.split("<br><br>\n")[1].split(".</bdo>")[0]
+    text_part2 = res2.stdout.split("<br><br>\n")[1].split("&nbsp;&#150;")[0].rstrip(".")
     assert all(c in allowed_chars for c in text_part2)
     assert text_part1 == text_part2
 
@@ -123,14 +123,30 @@ def test_custom_generate_length():
     cmd_50 = ["python3", "scripts/generator.py", "-language", "en", "-generate", "50"]
     res_50 = subprocess.run(cmd_50, capture_output=True, text=True)
     assert res_50.returncode == 0
-    text_part_50 = res_50.stdout.split("<br><br>\n")[1].split(".</bdo>")[0]
+    text_part_50 = res_50.stdout.split("<br><br>\n")[1].split("&nbsp;&#150;")[0].rstrip(".")
     assert len(text_part_50) == 60
 
     cmd_120 = ["python3", "scripts/generator.py", "-language", "en", "-generate", "120"]
     res_120 = subprocess.run(cmd_120, capture_output=True, text=True)
     assert res_120.returncode == 0
-    text_part_120 = res_120.stdout.split("<br><br>\n")[1].split(".</bdo>")[0]
+    text_part_120 = res_120.stdout.split("<br><br>\n")[1].split("&nbsp;&#150;")[0].rstrip(".")
     assert len(text_part_120) == 130
+
+def test_rtl_and_non_rtl_bdo_tags():
+    # Non-RTL output (English) should not contain any <bdo> or </bdo> tags
+    cmd_en = ["python3", "scripts/generator.py", "-language", "en", "-frequencies", "output", "-generate", "50"]
+    res_en = subprocess.run(cmd_en, capture_output=True, text=True)
+    assert res_en.returncode == 0
+    assert "<bdo" not in res_en.stdout
+    assert "</bdo>" not in res_en.stdout
+
+    # RTL output (Arabic) should include <bdo dir='rtl'> and matching </bdo> tags
+    cmd_ar = ["python3", "scripts/generator.py", "-language", "ar", "-frequencies", "output", "-generate", "50"]
+    res_ar = subprocess.run(cmd_ar, capture_output=True, text=True)
+    assert res_ar.returncode == 0
+    assert "<bdo dir='rtl'>" in res_ar.stdout
+    assert "</bdo>" in res_ar.stdout
+    assert res_ar.stdout.count("<bdo dir='rtl'>") == res_ar.stdout.count("</bdo>")
 
 def test_missing_word_entries_tsv(temp_language_file):
     content = """combined from test_missing_word
