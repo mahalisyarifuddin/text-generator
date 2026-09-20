@@ -404,9 +404,9 @@ for i in range(text_length):
 		tweakblank = 1
 		
 	if current in duplets_meta:
-		cumulative = []
-		sum_val = 1
 		options = duplets_meta[current]
+		weights = []
+		sum_val = 1.0
 		for char_j, base_weight, cat, currentpair in options:
 			# set tweakletter
 			if cat == 1:
@@ -427,40 +427,45 @@ for i in range(text_length):
 				eff_num_pairs = numberofpairs + (0 if currentpair in pairmeter else 1)
 				tweakpair = 1.0 + equalis_pair * ( (pairtotal/count_p/eff_num_pairs)*5 - 1)
 
-			sum_val += base_weight * tweakletter * tweakpair
-			cumulative.append(sum_val)
-		correction = 55000.0 / sum_val
-		for idx in range(len(cumulative)):
-				cumulative[idx] = int(cumulative[idx] * correction)
+			w = base_weight * tweakletter * tweakpair
+			weights.append(w)
+			sum_val += w
+
 		randm = random.randrange(55000)
-		for idx in range(len(cumulative)):
-			if randm < cumulative[idx]:
-				# new character is chosen
-				chosen_next, _, cat, _ = options[idx]
-
-				# update frequencies
-				if cat == 1:
-					if chosen_next not in frequencymeter:
-						frequencymeter[chosen_next] = 1
-						numberofletters += 1
-					frequencymeter[chosen_next] += 1
-					frequencytotal += 1
-				elif cat == 2:
-					if chosen_next not in frequencymeterUC:
-						frequencymeterUC[chosen_next] = 1
-						numberoflettersUC += 1
-					frequencymeterUC[chosen_next] += 1
-					frequencytotalUC += 1
-
-				current = current[1] + chosen_next
-				file_output += chosen_next.replace("_"," ")
-
-				if current not in pairmeter:
-					pairmeter[current] = 4
-					numberofpairs += 1
-				pairmeter[current] += 1
-				pairtotal += 1
+		target = (randm + 1) * sum_val / 55000.0
+		cum_sum = 1.0
+		chosen_idx = len(options) - 1
+		for idx, w in enumerate(weights):
+			cum_sum += w
+			if cum_sum >= target:
+				chosen_idx = idx
 				break
+
+		# new character is chosen
+		chosen_next, _, cat, _ = options[chosen_idx]
+
+		# update frequencies
+		if cat == 1:
+			if chosen_next not in frequencymeter:
+				frequencymeter[chosen_next] = 1
+				numberofletters += 1
+			frequencymeter[chosen_next] += 1
+			frequencytotal += 1
+		elif cat == 2:
+			if chosen_next not in frequencymeterUC:
+				frequencymeterUC[chosen_next] = 1
+				numberoflettersUC += 1
+			frequencymeterUC[chosen_next] += 1
+			frequencytotalUC += 1
+
+		current = current[1] + chosen_next
+		file_output += " " if chosen_next == "_" else chosen_next
+
+		if current not in pairmeter:
+			pairmeter[current] = 4
+			numberofpairs += 1
+		pairmeter[current] += 1
+		pairtotal += 1
 	else:
 		if characters != "":
 			current = current[1] + random.choice("____"+characters)
