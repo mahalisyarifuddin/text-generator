@@ -368,7 +368,8 @@ for d, options in duplets_sorted.items():
 			cat = 2
 		else:
 			cat = 0
-		meta.append((char_j, base_weight, cat, currentpair))
+		has_underscore = '_' in currentpair
+		meta.append((char_j, base_weight, cat, currentpair, has_underscore))
 	duplets_meta[d] = meta
 
 # build text
@@ -407,25 +408,32 @@ for i in range(text_length):
 		options = duplets_meta[current]
 		weights = []
 		sum_val = 1.0
-		for char_j, base_weight, cat, currentpair in options:
+		for char_j, base_weight, cat, currentpair, has_underscore in options:
 			# set tweakletter
 			if cat == 1:
-				count_j = frequencymeter.get(char_j, 1)
-				eff_num_l = numberofletters + (0 if char_j in frequencymeter else 1)
-				tweakletter = 1.0 + equalisation * ( (frequencytotal/count_j/eff_num_l)*5 - 1)
+				if equalisation != 0.0:
+					count_j = frequencymeter.get(char_j, 1)
+					eff_num_l = numberofletters + (0 if char_j in frequencymeter else 1)
+					tweakletter = 1.0 + equalisation * ( (frequencytotal/count_j/eff_num_l)*5 - 1)
+				else:
+					tweakletter = 1.0
 			elif cat == 2:
-				count_j = frequencymeterUC.get(char_j, 1)
-				eff_num_l_uc = numberoflettersUC + (0 if char_j in frequencymeterUC else 1)
-				tweakletter = 1.0 + equalisation * ( (frequencytotalUC/count_j/eff_num_l_uc)*5 - 1)
+				if equalisation != 0.0:
+					count_j = frequencymeterUC.get(char_j, 1)
+					eff_num_l_uc = numberoflettersUC + (0 if char_j in frequencymeterUC else 1)
+					tweakletter = 1.0 + equalisation * ( (frequencytotalUC/count_j/eff_num_l_uc)*5 - 1)
+				else:
+					tweakletter = 1.0
 			else:
 				tweakletter = tweakblank
 
 			# set tweakpair
-			tweakpair = 1.0
-			if '_' not in currentpair:
+			if equalis_pair != 0.0 and not has_underscore:
 				count_p = pairmeter.get(currentpair, 4)
 				eff_num_pairs = numberofpairs + (0 if currentpair in pairmeter else 1)
 				tweakpair = 1.0 + equalis_pair * ( (pairtotal/count_p/eff_num_pairs)*5 - 1)
+			else:
+				tweakpair = 1.0
 
 			w = base_weight * tweakletter * tweakpair
 			weights.append(w)
@@ -442,7 +450,7 @@ for i in range(text_length):
 				break
 
 		# new character is chosen
-		chosen_next, _, cat, _ = options[chosen_idx]
+		chosen_next, _, cat, _, _ = options[chosen_idx]
 
 		# update frequencies
 		if cat == 1:
