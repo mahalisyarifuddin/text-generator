@@ -2010,20 +2010,26 @@ class TextGeneratorApp {
 				for (let k = 0; k < numOptions; k++) {
 					const opt = options[k];
 					const nextChar = opt.char;
-					let tweakl = 1;
+					let tweakl = 1.0;
 					if (opt.category === 1) {
-						const count = freq_m[nextChar] || 1;
-						const eff_num_l = num_l + (freq_m[nextChar] ? 0 : 1);
-						tweakl = tweakLBase + (tweakLFactor / (count * eff_num_l));
+						if (equalization !== 0.0) {
+							const count = freq_m[nextChar] || 1;
+							const eff_num_l = num_l + (freq_m[nextChar] ? 0 : 1);
+							tweakl = tweakLBase + (tweakLFactor / (count * eff_num_l));
+						}
 					} else if (opt.category === 2) {
-						const count = freq_m_uc[nextChar] || 1;
-						const eff_num_l_uc = num_l_uc + (freq_m_uc[nextChar] ? 0 : 1);
-						tweakl = tweakLBase + (tweakLFactorUC / (count * eff_num_l_uc));
-					} else tweakl = tweakblank;
+						if (equalization !== 0.0) {
+							const count = freq_m_uc[nextChar] || 1;
+							const eff_num_l_uc = num_l_uc + (freq_m_uc[nextChar] ? 0 : 1);
+							tweakl = tweakLBase + (tweakLFactorUC / (count * eff_num_l_uc));
+						}
+					} else {
+						tweakl = tweakblank;
+					}
 
-					const pair = opt.pair;
 					let tweakp = 1.0;
-					if (char2 !== '_' && nextChar !== '_') {
+					if (equalisPair !== 0.0 && char2 !== '_' && nextChar !== '_') {
+						const pair = opt.pair;
 						const count = pair_m[pair] || 4;
 						const eff_num_pairs = num_pairs + (pair_m[pair] ? 0 : 1);
 						tweakp = tweakPBase + (tweakPFactor / (count * eff_num_pairs));
