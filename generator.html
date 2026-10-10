@@ -1130,8 +1130,8 @@
 		<section>
 			<h2 id="resultsTitle">Results & Analysis</h2>
 			<div class="actions">
-				<button id="copyTextBtn" class="btn-secondary">Copy</button>
-				<button id="downloadTextBtn" class="btn-secondary">Download</button>
+				<button id="copyTextBtn" class="btn-secondary" disabled>Copy</button>
+				<button id="downloadTextBtn" class="btn-secondary" disabled>Download</button>
 			</div>
 			<div class="card card-subtle">
 				<div id="output"></div>
@@ -1636,6 +1636,12 @@ class TextGeneratorApp {
 		};
 	}
 
+	updateOutputButtons() {
+		const hasOutput = Boolean(elements.output && elements.output.textContent && elements.output.textContent.trim().length > 0);
+		if (elements.copyTextBtn) elements.copyTextBtn.disabled = !hasOutput;
+		if (elements.downloadTextBtn) elements.downloadTextBtn.disabled = !hasOutput;
+	}
+
 	updateKerningUI() {
 		const mode = elements.kerningModeInput.value;
 		if (mode === "none") {
@@ -1744,6 +1750,7 @@ class TextGeneratorApp {
 		AppSettings.applyLang(AppSettings.detectLang(Object.keys(translations)));
 
 		this.updateKerningUI();
+		this.updateOutputButtons();
 		this.updateUIStrings();
 	}
 
@@ -2070,6 +2077,7 @@ class TextGeneratorApp {
 			}
 		}
 		elements.output.textContent = file_output;
+		this.updateOutputButtons();
 		this.displayFrequency(file_output);
 	}
 
