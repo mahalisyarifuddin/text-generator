@@ -1141,7 +1141,7 @@
 				<details id="freqDetails" class="hidden">
 					<summary><b id="freqTitle">Character Frequency Analysis</b> (Click to expand)</summary>
 					<div style="margin-top: 10px;">
-						<button id="copyFreqBtn" class="btn-secondary">Copy TSV</button>
+						<button id="copyFreqBtn" class="btn-secondary" disabled>Copy TSV</button>
 					</div>
 					<textarea id="freqTSV" class="freq-tsv" readonly></textarea>
 				</details>
@@ -1640,6 +1640,7 @@ class TextGeneratorApp {
 		const hasOutput = Boolean(elements.output && elements.output.textContent && elements.output.textContent.trim().length > 0);
 		if (elements.copyTextBtn) elements.copyTextBtn.disabled = !hasOutput;
 		if (elements.downloadTextBtn) elements.downloadTextBtn.disabled = !hasOutput;
+		if (elements.copyFreqBtn) elements.copyFreqBtn.disabled = !hasOutput;
 	}
 
 	updateKerningUI() {
@@ -2082,6 +2083,11 @@ class TextGeneratorApp {
 	}
 
 	displayFrequency(text) {
+		if (!text) {
+			elements.freqTSV.value = "";
+			elements.freqDetails.classList.add("hidden");
+			return;
+		}
 		const counts = {};
 		for (const char of text) {
 			counts[char] = (counts[char] || 0) + 1;
@@ -2091,8 +2097,12 @@ class TextGeneratorApp {
 
 		let tsv = this.string('tsvHeader') + "\n";
 		for (const [char, count] of sorted) {
-			const percentage = ((count / total) * 100).toFixed(2) + "%";
-			const displayChar = char === " " ? "Space" : char;
+			const percentage = total > 0 ? ((count / total) * 100).toFixed(2) + "%" : "0.00%";
+			let displayChar = char;
+			if (char === " ") displayChar = "Space";
+			else if (char === "\n") displayChar = "Newline";
+			else if (char === "\t") displayChar = "Tab";
+			else if (char === "\r") displayChar = "Carriage Return";
 			tsv += `${displayChar}\t${count}\t${percentage}\n`;
 		}
 		elements.freqTSV.value = tsv;
