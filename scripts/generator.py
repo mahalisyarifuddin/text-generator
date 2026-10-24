@@ -144,7 +144,7 @@ if not os.path.isfile(triplets_filename):
 	triplets = []
 	inputs = []
 	for i in range(n):
-		f=open( os.path.join( os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) ), 'languages', 'triplets_'+input_languages[i]+'.txt'), 'r', encoding='utf-8' )
+		f=open( os.path.join( os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) ), 'languages', 'triplets_'+input_languages[i]+'.txt'), 'r', encoding='utf-8-sig' )
 		file_output_merged += " " + input_languages[i]
 		triplets.append({})
 		inputs = f.readlines()
@@ -241,7 +241,7 @@ numberofpairs = 0
 if kernglobal != 0:
 	if args.kern == "typ":
 		kern_filename = os.path.join( os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) ), 'kerning.txt' )
-		f=open(kern_filename, 'r', encoding='utf-8')
+		f=open(kern_filename, 'r', encoding='utf-8-sig')
 		inputs = f.readlines()
 		f.close()
 		del inputs[0]
@@ -262,7 +262,7 @@ if kernglobal != 0:
 if file_output_merged:
 	inputs = file_output_merged.split( '\n' )
 else:
-	f=open(triplets_filename, 'r', encoding='utf-8')
+	f=open(triplets_filename, 'r', encoding='utf-8-sig')
 	inputs = f.readlines()
 	f.close()
 del inputs[0]

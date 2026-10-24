@@ -39,6 +39,16 @@ def test_well_formed_tsv(temp_language_file):
     assert "Traceback" not in res.stderr
     assert "ValueError" not in res.stdout
 
+def test_utf8_bom_tsv_reading(temp_language_file):
+    # Verify that generator loads UTF-8 TSV files containing a Byte Order Mark (\ufeff)
+    content = "\ufeffcombined from test_bom\n                  10\tword001\n                  20\t_th\n                  30\tthe\n"
+    lang = temp_language_file("test_bom", content)
+    res = run_generator(lang)
+    assert res.returncode == 0
+    assert "Just Another Test Text Generator" in res.stdout
+    assert "Traceback" not in res.stderr
+    assert "ValueError" not in res.stdout
+
 def test_utf8_corpus_file_reading():
     # Verify that generator loads UTF-8 corpus files with non-ASCII characters without UnicodeDecodeError
     env = dict(os.environ, LC_ALL="C", PYTHONUTF8="0")
